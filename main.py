@@ -94,9 +94,9 @@ def teken_knop(scherm, rect, titel, uitleg, kosten, punten, font_titel, font_kle
     uitleg_tekst = font_klein.render(uitleg, True, SUBTEKST_KLEUR)
     kosten_tekst = font_klein.render(f"Kosten: {kosten}", True, GEEL)
 
-    scherm.blit(titel_tekst, (rect.x + 14, rect.y + 10))
-    scherm.blit(uitleg_tekst, (rect.x + 14, rect.y + 46))
-    scherm.blit(kosten_tekst, (rect.x + 14, rect.y + 76))
+    scherm.blit(titel_tekst, (rect.x + 14, rect.y + 8))
+    scherm.blit(uitleg_tekst, (rect.x + 14, rect.y + 30))
+    scherm.blit(kosten_tekst, (rect.x + 14, rect.y + 46))
 
 
 def speel():
@@ -110,11 +110,15 @@ def speel():
     font_groot = pygame.font.SysFont("Arial", 40, bold=True)
     font_middel = pygame.font.SysFont("Arial", 28, bold=True)
     font_klein = pygame.font.SysFont("Arial", 20)
+    font_shop = pygame.font.SysFont("Arial", 22, bold=True)
+    font_shop_klein = pygame.font.SysFont("Arial", 16)
 
     # Rechthoeken voor het poppetje en de winkel.
     poppetje_rect = pygame.Rect(120, 110, 220, 260)
-    klik_knop = pygame.Rect(650, 220, 240, 110)
-    spook_knop = pygame.Rect(650, 350, 240, 110)
+    klik_knop = pygame.Rect(650, 210, 240, 64)
+    spook_knop = pygame.Rect(650, 285, 240, 64)
+    mega_klik_knop = pygame.Rect(650, 360, 240, 64)
+    mega_spook_knop = pygame.Rect(650, 435, 240, 64)
 
     # Spelvariabelen.
     punten = START_PUNTEN
@@ -122,6 +126,8 @@ def speel():
     auto_spoken = START_AUTO_SPOKEN
     kosten_klik = START_KOSTEN_KLIK
     kosten_spook = START_KOSTEN_SPOOK
+    kosten_mega_klik = START_KOSTEN_MEGA_KLIK
+    kosten_mega_spook = START_KOSTEN_MEGA_SPOOK
     klik_animatie = 0
     teller = 0
 
@@ -159,6 +165,16 @@ def speel():
                     punten -= kosten_spook
                     auto_spoken += 1
 
+                # Koop een grote klik-upgrade.
+                elif mega_klik_knop.collidepoint(muis_pos) and punten >= kosten_mega_klik:
+                    punten -= kosten_mega_klik
+                    klik_kracht += 5
+
+                # Koop een grote spook-upgrade.
+                elif mega_spook_knop.collidepoint(muis_pos) and punten >= kosten_mega_spook:
+                    punten -= kosten_mega_spook
+                    auto_spoken += 5
+
         if klik_animatie > 0:
             klik_animatie -= 1
 
@@ -183,9 +199,14 @@ def speel():
         scherm.blit(klik_tekst, (paneel.x + 20, 120))
         scherm.blit(auto_tekst, (paneel.x + 20, 160))
 
-        # Teken de twee upgrade-knoppen.
-        teken_knop(scherm, klik_knop, "Sterkere klik", "+1 punt per klik", kosten_klik, punten, font_middel, font_klein)
-        teken_knop(scherm, spook_knop, "Spookhulp", "+1 punt per seconde", kosten_spook, punten, font_middel, font_klein)
+        winkel_tekst = font_middel.render("Shop", True, TEKST_KLEUR)
+        scherm.blit(winkel_tekst, (paneel.x + 20, 190))
+
+        # Teken de shop-knoppen.
+        teken_knop(scherm, klik_knop, "Sterkere klik", "+1 punt per klik", kosten_klik, punten, font_shop, font_shop_klein)
+        teken_knop(scherm, spook_knop, "Spookhulp", "+1 punt per seconde", kosten_spook, punten, font_shop, font_shop_klein)
+        teken_knop(scherm, mega_klik_knop, "Mega klik", "+5 punten per klik", kosten_mega_klik, punten, font_shop, font_shop_klein)
+        teken_knop(scherm, mega_spook_knop, "Mega spook", "+5 punten per seconde", kosten_mega_spook, punten, font_shop, font_shop_klein)
 
         # Kleine tip onderaan.
         tip = font_klein.render("Tip: koop eerst wat sterkere klikken!", True, SUBTEKST_KLEUR)
