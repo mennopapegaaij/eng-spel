@@ -30,46 +30,108 @@ def teken_achtergrond(scherm, teller):
         pygame.draw.ellipse(scherm, MIST_KLEUR, (mist_x, 380 + (i % 2) * 18, 220, 80))
 
 
-def teken_poppetje(scherm, rect, teller, klik_animatie):
+def bereken_eng_niveau(punten):
+    """Geef het eng-niveau terug.
+
+    0 punten = niveau 0
+    1 t/m 9 = niveau 1
+    10 t/m 99 = niveau 2
+    100 t/m 999 = niveau 3
+    enzovoort.
+    """
+    if punten < 1:
+        return 0
+    return int(math.log10(punten)) + 1
+
+
+def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
     """Teken het enge poppetje waar je op moet klikken."""
     x = rect.x
     y = rect.y
     breedte = rect.width
+    eng_niveau = bereken_eng_niveau(punten)
+    visueel_niveau = min(eng_niveau, 6)
 
     # Bij een klik wordt het poppetje heel even groter.
     extra = 10 if klik_animatie > 0 else 0
     lijf = pygame.Rect(x + 55 - extra // 2, y + 78 - extra // 2, 110 + extra, 150 + extra)
     hoofd_midden = (x + breedte // 2, y + 75)
     hoofd_straal = 52 + extra // 3
+    huid_kleur = (
+        max(0, PANEEL_KLEUR[0] - visueel_niveau * 3),
+        max(0, PANEEL_KLEUR[1] - visueel_niveau * 2),
+        max(0, PANEEL_KLEUR[2] - visueel_niveau * 5),
+    )
+    rand_kleur = (
+        min(255, PANEEL_RAND[0] + visueel_niveau * 12),
+        max(0, PANEEL_RAND[1] - visueel_niveau * 4),
+        min(255, PANEEL_RAND[2] + visueel_niveau * 8),
+    )
 
     # Schaduw.
     pygame.draw.ellipse(scherm, ZWART, (x + 35, y + 220, 160, 35))
 
+    # Hoe enger het niveau, hoe sterker de aura rond het hoofd.
+    if visueel_niveau >= 2:
+        aura_straal = hoofd_straal + 8 + visueel_niveau * 3
+        pygame.draw.circle(scherm, (70, 20, 80), hoofd_midden, aura_straal, 3)
+
     # Hoofd en lijf.
-    pygame.draw.circle(scherm, PANEEL_KLEUR, hoofd_midden, hoofd_straal)
-    pygame.draw.circle(scherm, PANEEL_RAND, hoofd_midden, hoofd_straal, 4)
-    pygame.draw.rect(scherm, PANEEL_KLEUR, lijf, border_radius=18)
-    pygame.draw.rect(scherm, PANEEL_RAND, lijf, 4, border_radius=18)
+    pygame.draw.circle(scherm, huid_kleur, hoofd_midden, hoofd_straal)
+    pygame.draw.circle(scherm, rand_kleur, hoofd_midden, hoofd_straal, 4)
+    pygame.draw.rect(scherm, huid_kleur, lijf, border_radius=18)
+    pygame.draw.rect(scherm, rand_kleur, lijf, 4, border_radius=18)
 
     # Armen.
-    arm_golf = math.sin(teller * 0.08) * 12
-    pygame.draw.line(scherm, PANEEL_RAND, (x + 60, y + 130), (x + 10, y + 155 + arm_golf), 8)
-    pygame.draw.line(scherm, PANEEL_RAND, (x + 160, y + 130), (x + 210, y + 155 - arm_golf), 8)
+    arm_golf = math.sin(teller * 0.08) * (12 + visueel_niveau * 2)
+    pygame.draw.line(scherm, rand_kleur, (x + 60, y + 130), (x + 10, y + 155 + arm_golf), 8)
+    pygame.draw.line(scherm, rand_kleur, (x + 160, y + 130), (x + 210, y + 155 - arm_golf), 8)
+
+    # Hoorns bij hogere niveaus.
+    if visueel_niveau >= 4:
+        pygame.draw.polygon(scherm, rand_kleur, [(x + 78, y + 10), (x + 96, y - 28), (x + 110, y + 18)])
+        pygame.draw.polygon(scherm, rand_kleur, [(x + 130, y + 18), (x + 144, y - 28), (x + 162, y + 10)])
 
     # Ogen - rood als het echt eng is.
     oog_kleur = ROZE if klik_animatie > 0 else ROOD
-    pygame.draw.circle(scherm, oog_kleur, (x + 88, y + 65), 10)
-    pygame.draw.circle(scherm, oog_kleur, (x + 132, y + 65), 10)
+    oog_straal = 10 + min(visueel_niveau, 3)
+    pygame.draw.circle(scherm, oog_kleur, (x + 88, y + 65), oog_straal)
+    pygame.draw.circle(scherm, oog_kleur, (x + 132, y + 65), oog_straal)
     pygame.draw.circle(scherm, WIT, (x + 91, y + 62), 3)
     pygame.draw.circle(scherm, WIT, (x + 135, y + 62), 3)
 
+    if visueel_niveau >= 2:
+        pygame.draw.line(scherm, ZWART, (x + 74, y + 48), (x + 97, y + 58), 3)
+        pygame.draw.line(scherm, ZWART, (x + 123, y + 58), (x + 146, y + 48), 3)
+
+    if visueel_niveau >= 5:
+        pygame.draw.circle(scherm, oog_kleur, (x + 110, y + 34), 8)
+        pygame.draw.circle(scherm, WIT, (x + 112, y + 31), 2)
+
     # Mond.
-    pygame.draw.arc(scherm, WIT, (x + 78, y + 88, 64, 28), 0, math.pi, 3)
+    if visueel_niveau <= 1:
+        pygame.draw.arc(scherm, WIT, (x + 78, y + 88, 64, 28), 0, math.pi, 3)
+    else:
+        pygame.draw.arc(scherm, WIT, (x + 72, y + 92, 76, 34), 0, math.pi, 3)
+        tanden = 3 + min(visueel_niveau, 4)
+        for tand in range(tanden):
+            tand_x = x + 78 + tand * 12
+            pygame.draw.polygon(scherm, WIT, [(tand_x, y + 103), (tand_x + 6, y + 118), (tand_x + 12, y + 103)])
+
+    if visueel_niveau >= 6:
+        for i in range(6):
+            vonk_x = x + 44 + i * 24
+            vonk_y = y + 18 + (i % 2) * 12
+            pygame.draw.line(scherm, ROOD, (vonk_x, vonk_y), (vonk_x - 8, vonk_y - 14), 2)
+            pygame.draw.line(scherm, ROOD, (vonk_x, vonk_y), (vonk_x + 8, vonk_y - 12), 2)
 
     # Kleine waarschuwingstekst op het poppetje.
     font = pygame.font.SysFont("Arial", 20, bold=True)
+    font_klein = pygame.font.SysFont("Arial", 16, bold=True)
     tekst = font.render("KLIK!", True, GEEL)
     scherm.blit(tekst, (x + breedte // 2 - tekst.get_width() // 2, y + 245))
+    niveau_tekst = font_klein.render(f"Eng niveau {eng_niveau}", True, ROZE)
+    scherm.blit(niveau_tekst, (x + breedte // 2 - niveau_tekst.get_width() // 2, y + 268))
 
 
 def maak_upgrades():
@@ -244,7 +306,7 @@ def speel():
         scherm.blit(uitleg, (42, 76))
 
         # Teken het poppetje.
-        teken_poppetje(scherm, poppetje_rect, teller, klik_animatie)
+        teken_poppetje(scherm, poppetje_rect, teller, klik_animatie, punten)
 
         # Teken het informatiepaneel.
         teken_paneel(scherm, paneel_rect)
@@ -252,14 +314,18 @@ def speel():
         punten_tekst = font_groot.render(f"Punten: {punten}", True, TEKST_KLEUR)
         klik_tekst = font_middel.render(f"Per klik: {klik_kracht}", True, GEEL)
         auto_tekst = font_middel.render(f"Per seconde: {auto_spoken}", True, ROZE)
+        eng_niveau = bereken_eng_niveau(punten)
+        volgende_grens = 1 if punten < 1 else 10 ** eng_niveau
+        eng_tekst = font_klein.render(f"Volgende enge vorm bij: {volgende_grens}", True, SUBTEKST_KLEUR)
         scherm.blit(punten_tekst, (paneel_rect.x + 20, 55))
         scherm.blit(klik_tekst, (paneel_rect.x + 20, 120))
         scherm.blit(auto_tekst, (paneel_rect.x + 20, 160))
+        scherm.blit(eng_tekst, (paneel_rect.x + 20, 192))
 
         winkel_tekst = font_middel.render("Shop", True, TEKST_KLEUR)
         pagina_tekst = font_klein.render(f"Pagina {shop_pagina + 1}/{max_pagina + 1}", True, SUBTEKST_KLEUR)
-        scherm.blit(winkel_tekst, (paneel_rect.x + 20, 190))
-        scherm.blit(pagina_tekst, (paneel_rect.x + 210, 194))
+        scherm.blit(winkel_tekst, (paneel_rect.x + 20, 215))
+        scherm.blit(pagina_tekst, (paneel_rect.x + 210, 219))
 
         teken_pagina_knop(scherm, vorige_pagina_knop, "<", shop_pagina > 0, font_klein)
         teken_pagina_knop(scherm, volgende_pagina_knop, ">", shop_pagina < max_pagina, font_klein)
