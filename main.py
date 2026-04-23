@@ -82,20 +82,20 @@ def maak_upgrades():
     - bonus voor klikken of per seconde
     """
     return [
-        {"titel": "Sterke klik", "uitleg": "+1 per klik", "kosten": 25, "klik_bonus": 1, "auto_bonus": 0},
-        {"titel": "Spookhulp", "uitleg": "+1 per seconde", "kosten": 60, "klik_bonus": 0, "auto_bonus": 1},
-        {"titel": "Scherpe klik", "uitleg": "+4 per klik", "kosten": 90, "klik_bonus": 4, "auto_bonus": 0},
-        {"titel": "Kleine geest", "uitleg": "+4 per seconde", "kosten": 140, "klik_bonus": 0, "auto_bonus": 4},
-        {"titel": "Snelle vingers", "uitleg": "+10 per klik", "kosten": 200, "klik_bonus": 10, "auto_bonus": 0},
-        {"titel": "Spokenclub", "uitleg": "+9 per seconde", "kosten": 280, "klik_bonus": 0, "auto_bonus": 9},
-        {"titel": "Mega klik", "uitleg": "+22 per klik", "kosten": 380, "klik_bonus": 22, "auto_bonus": 0},
-        {"titel": "Mega spook", "uitleg": "+18 per seconde", "kosten": 520, "klik_bonus": 0, "auto_bonus": 18},
-        {"titel": "Donderklik", "uitleg": "+45 per klik", "kosten": 700, "klik_bonus": 45, "auto_bonus": 0},
-        {"titel": "Geestenstorm", "uitleg": "+35 per seconde", "kosten": 950, "klik_bonus": 0, "auto_bonus": 35},
-        {"titel": "Nachtklauw", "uitleg": "+90 per klik", "kosten": 1300, "klik_bonus": 90, "auto_bonus": 0},
-        {"titel": "Monsterleger", "uitleg": "+70 per seconde", "kosten": 1800, "klik_bonus": 0, "auto_bonus": 70},
-        {"titel": "Eindklik", "uitleg": "+200 per klik", "kosten": 2600, "klik_bonus": 200, "auto_bonus": 0},
-        {"titel": "Nachtkoning", "uitleg": "+150 per seconde", "kosten": 3200, "klik_bonus": 0, "auto_bonus": 150},
+        {"titel": "Sterke klik", "uitleg": "+1 per klik", "kosten": 40, "klik_bonus": 1, "auto_bonus": 0},
+        {"titel": "Spookhulp", "uitleg": "+1 per seconde", "kosten": 100, "klik_bonus": 0, "auto_bonus": 1},
+        {"titel": "Scherpe klik", "uitleg": "+4 per klik", "kosten": 180, "klik_bonus": 4, "auto_bonus": 0},
+        {"titel": "Kleine geest", "uitleg": "+4 per seconde", "kosten": 280, "klik_bonus": 0, "auto_bonus": 4},
+        {"titel": "Snelle vingers", "uitleg": "+10 per klik", "kosten": 420, "klik_bonus": 10, "auto_bonus": 0},
+        {"titel": "Spokenclub", "uitleg": "+9 per seconde", "kosten": 620, "klik_bonus": 0, "auto_bonus": 9},
+        {"titel": "Mega klik", "uitleg": "+22 per klik", "kosten": 900, "klik_bonus": 22, "auto_bonus": 0},
+        {"titel": "Mega spook", "uitleg": "+18 per seconde", "kosten": 1200, "klik_bonus": 0, "auto_bonus": 18},
+        {"titel": "Donderklik", "uitleg": "+45 per klik", "kosten": 1700, "klik_bonus": 45, "auto_bonus": 0},
+        {"titel": "Geestenstorm", "uitleg": "+35 per seconde", "kosten": 2300, "klik_bonus": 0, "auto_bonus": 35},
+        {"titel": "Nachtklauw", "uitleg": "+90 per klik", "kosten": 3400, "klik_bonus": 90, "auto_bonus": 0},
+        {"titel": "Monsterleger", "uitleg": "+70 per seconde", "kosten": 4600, "klik_bonus": 0, "auto_bonus": 70},
+        {"titel": "Eindklik", "uitleg": "+200 per klik", "kosten": 7000, "klik_bonus": 200, "auto_bonus": 0},
+        {"titel": "Nachtkoning", "uitleg": "+150 per seconde", "kosten": 8500, "klik_bonus": 0, "auto_bonus": 150},
     ]
 
 
