@@ -153,13 +153,11 @@ def speel():
                 elif klik_knop.collidepoint(muis_pos) and punten >= kosten_klik:
                     punten -= kosten_klik
                     klik_kracht += 1
-                    kosten_klik = int(kosten_klik * 1.7)
 
                 # Koop een spookhelper voor automatische punten.
                 elif spook_knop.collidepoint(muis_pos) and punten >= kosten_spook:
                     punten -= kosten_spook
                     auto_spoken += 1
-                    kosten_spook = int(kosten_spook * 1.8)
 
         if klik_animatie > 0:
             klik_animatie -= 1
