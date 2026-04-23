@@ -22,3 +22,4 @@ python main.py
 
 - Linkermuisknop op het poppetje = punten krijgen
 - Linkermuisknop op een upgrade = upgrade kopen
+- Linkermuisknop op `Reset +1 multiplier` = opnieuw beginnen met een hogere multiplier

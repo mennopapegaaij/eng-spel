@@ -171,7 +171,7 @@ def maak_shop_vakken(paneel_rect):
     """Maak 8 vakken voor de shop (2 kolommen van 4)."""
     vakken = []
     start_x = paneel_rect.x + 16
-    start_y = paneel_rect.y + 215
+    start_y = paneel_rect.y + 245
     breedte = 129
     hoogte = 55
     tussenruimte_x = 10
@@ -218,6 +218,23 @@ def teken_pagina_knop(scherm, rect, tekst, actief, font):
     )
 
 
+def teken_reset_knop(scherm, rect, font):
+    """Teken de resetknop."""
+    pygame.draw.rect(scherm, KNOP_KLEUR, rect, border_radius=14)
+    pygame.draw.rect(scherm, ROOD, rect, 3, border_radius=14)
+
+    tekst_img = font.render("Reset +1 multiplier", True, TEKST_KLEUR)
+    scherm.blit(
+        tekst_img,
+        (rect.x + rect.width // 2 - tekst_img.get_width() // 2, rect.y + 14),
+    )
+
+
+def reset_speltoestand():
+    """Zet de spelwaarden terug voor een nieuwe ronde."""
+    return START_PUNTEN, START_KLIK_KRACHT, START_AUTO_SPOKEN, 0
+
+
 def speel():
     """Start en draai het clicker-spel."""
     pygame.init()
@@ -238,15 +255,14 @@ def speel():
     shop_vakken = maak_shop_vakken(paneel_rect)
     vorige_pagina_knop = pygame.Rect(paneel_rect.x + 176, paneel_rect.y + 176, 32, 28)
     volgende_pagina_knop = pygame.Rect(paneel_rect.x + 252, paneel_rect.y + 176, 32, 28)
+    reset_knop = pygame.Rect(55, 430, 220, 52)
 
     # Spelvariabelen.
-    punten = START_PUNTEN
-    klik_kracht = START_KLIK_KRACHT
-    auto_spoken = START_AUTO_SPOKEN
+    punten, klik_kracht, auto_spoken, shop_pagina = reset_speltoestand()
+    multiplier = 1
     klik_animatie = 0
     teller = 0
     upgrades = maak_upgrades()
-    shop_pagina = 0
     vakken_per_pagina = len(shop_vakken)
     max_pagina = (len(upgrades) - 1) // vakken_per_pagina
 
@@ -264,15 +280,21 @@ def speel():
 
             # Elke seconde krijg je punten van je spookhelpers.
             if event.type == auto_punt_event and auto_spoken > 0:
-                punten += auto_spoken
+                punten += auto_spoken * multiplier
 
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 muis_pos = event.pos
 
                 # Klik op het poppetje voor punten.
                 if poppetje_rect.collidepoint(muis_pos):
-                    punten += klik_kracht
+                    punten += klik_kracht * multiplier
                     klik_animatie = 10
+
+                # Reset het spel en maak de multiplier groter.
+                elif reset_knop.collidepoint(muis_pos):
+                    multiplier += 1
+                    punten, klik_kracht, auto_spoken, shop_pagina = reset_speltoestand()
+                    klik_animatie = 0
 
                 # Ga naar de vorige shop-pagina.
                 elif vorige_pagina_knop.collidepoint(muis_pos) and shop_pagina > 0:
@@ -307,25 +329,28 @@ def speel():
 
         # Teken het poppetje.
         teken_poppetje(scherm, poppetje_rect, teller, klik_animatie, punten)
+        teken_reset_knop(scherm, reset_knop, font_klein)
 
         # Teken het informatiepaneel.
         teken_paneel(scherm, paneel_rect)
 
         punten_tekst = font_groot.render(f"Punten: {punten}", True, TEKST_KLEUR)
-        klik_tekst = font_middel.render(f"Per klik: {klik_kracht}", True, GEEL)
-        auto_tekst = font_middel.render(f"Per seconde: {auto_spoken}", True, ROZE)
+        klik_tekst = font_middel.render(f"Per klik: {klik_kracht * multiplier}", True, GEEL)
+        auto_tekst = font_middel.render(f"Per seconde: {auto_spoken * multiplier}", True, ROZE)
+        multiplier_tekst = font_klein.render(f"Multiplier: x{multiplier}", True, GEEL)
         eng_niveau = bereken_eng_niveau(punten)
         volgende_grens = 1 if punten < 1 else 10 ** eng_niveau
         eng_tekst = font_klein.render(f"Volgende enge vorm bij: {volgende_grens}", True, SUBTEKST_KLEUR)
         scherm.blit(punten_tekst, (paneel_rect.x + 20, 55))
         scherm.blit(klik_tekst, (paneel_rect.x + 20, 120))
         scherm.blit(auto_tekst, (paneel_rect.x + 20, 160))
-        scherm.blit(eng_tekst, (paneel_rect.x + 20, 192))
+        scherm.blit(multiplier_tekst, (paneel_rect.x + 20, 192))
+        scherm.blit(eng_tekst, (paneel_rect.x + 20, 212))
 
         winkel_tekst = font_middel.render("Shop", True, TEKST_KLEUR)
         pagina_tekst = font_klein.render(f"Pagina {shop_pagina + 1}/{max_pagina + 1}", True, SUBTEKST_KLEUR)
-        scherm.blit(winkel_tekst, (paneel_rect.x + 20, 215))
-        scherm.blit(pagina_tekst, (paneel_rect.x + 210, 219))
+        scherm.blit(winkel_tekst, (paneel_rect.x + 20, 220))
+        scherm.blit(pagina_tekst, (paneel_rect.x + 210, 224))
 
         teken_pagina_knop(scherm, vorige_pagina_knop, "<", shop_pagina > 0, font_klein)
         teken_pagina_knop(scherm, volgende_pagina_knop, ">", shop_pagina < max_pagina, font_klein)
