@@ -395,6 +395,23 @@ def teken_shop_knop(scherm, rect, upgrade, punten, font_titel, font_klein):
     scherm.blit(kosten_tekst, (rect.x + 8, rect.y + 39))
 
 
+def kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina):
+    """Ga naar de volgende pagina als je daar iets kunt kopen."""
+    volgende_pagina = shop_pagina + 1
+    max_pagina = (len(upgrades) - 1) // vakken_per_pagina
+
+    if volgende_pagina > max_pagina:
+        return shop_pagina
+
+    start = volgende_pagina * vakken_per_pagina
+    volgende_upgrades = upgrades[start : start + vakken_per_pagina]
+
+    if any(punten >= upgrade["kosten"] for upgrade in volgende_upgrades):
+        return volgende_pagina
+
+    return shop_pagina
+
+
 def teken_pagina_knop(scherm, rect, tekst, actief, font):
     """Teken een kleine knop om tussen shop-pagina's te gaan."""
     kleur = KNOP_KLEUR if actief else KNOP_UIT
@@ -486,6 +503,7 @@ def speel():
             # Elke seconde krijg je punten van je spookhelpers.
             if event.type == auto_punt_event and auto_spoken > 0:
                 punten += auto_spoken * multiplier
+                shop_pagina = kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina)
 
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 muis_pos = event.pos
@@ -494,6 +512,7 @@ def speel():
                 if poppetje_rect.collidepoint(muis_pos):
                     punten += klik_kracht * multiplier
                     klik_animatie = 10
+                    shop_pagina = kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina)
 
                 # Reset het spel en maak de multiplier groter.
                 elif reset_knop.collidepoint(muis_pos):
@@ -523,6 +542,7 @@ def speel():
                             punten -= upgrade["kosten"]
                             klik_kracht += upgrade["klik_bonus"]
                             auto_spoken += upgrade["auto_bonus"]
+                            shop_pagina = kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina)
                             break
 
         if klik_animatie > 0:
@@ -570,7 +590,7 @@ def speel():
             teken_shop_knop(scherm, rect, upgrade, punten, font_shop, font_shop_klein)
 
         # Kleine tip onderaan.
-        tip = font_klein.render("Tip: gebruik < en > voor meer shop-dingen!", True, SUBTEKST_KLEUR)
+        tip = font_klein.render("Tip: de shop springt zelf door als je genoeg punten hebt!", True, SUBTEKST_KLEUR)
         scherm.blit(tip, (38, 505))
 
         pygame.display.flip()
