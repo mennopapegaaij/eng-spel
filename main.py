@@ -30,16 +30,13 @@ def teken_achtergrond(scherm, teller):
         pygame.draw.ellipse(scherm, MIST_KLEUR, (mist_x, 380 + (i % 2) * 18, 220, 80))
 
 
-def bereken_eng_niveau(punten, multiplier=1.0):
+def bereken_eng_niveau(punten):
     """Geef de eng-kracht terug.
 
-    Dit groeit door punten EN door resets.
-    Zo blijft het poppetje steeds enger worden,
-    ook als je opnieuw begint met een hogere multiplier.
+    Dit groeit alleen door punten.
+    Een resetbonus telt dus niet mee.
     """
-    punt_kracht = math.log10(max(0, punten) + 1) * 2.6
-    multiplier_kracht = max(0.0, multiplier - 1.0) * 2.4
-    return punt_kracht + multiplier_kracht
+    return math.log10(max(0, punten) + 1) * 2.6
 
 
 def format_getal(getal):
@@ -62,12 +59,12 @@ def bereken_reset_bonus(punten):
     return (int(punten) // 50) / 10
 
 
-def teken_poppetje(scherm, rect, teller, klik_animatie, punten, multiplier):
+def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
     """Teken het enge poppetje waar je op moet klikken."""
     x = rect.x
     y = rect.y
     breedte = rect.width
-    eng_kracht = bereken_eng_niveau(punten, multiplier)
+    eng_kracht = bereken_eng_niveau(punten)
     eng_fase = int(eng_kracht)
     basis_niveau = min(eng_kracht, 6)
     extra_niveau = max(0.0, eng_kracht - 6)
@@ -176,7 +173,7 @@ def teken_poppetje(scherm, rect, teller, klik_animatie, punten, multiplier):
         mond_hoogte = 34 + min(extra_niveau * 2, 18)
         mond_x = x + breedte // 2 - mond_breedte // 2
         pygame.draw.arc(scherm, WIT, (mond_x, y + 92, mond_breedte, mond_hoogte), 0, math.pi, 3)
-        tanden = 3 + min(basis_niveau, 4) + min(extra_niveau, 4)
+        tanden = int(3 + min(basis_niveau, 4) + min(extra_niveau, 4))
         tand_afstand = mond_breedte / (tanden + 1)
         for tand in range(tanden):
             tand_midden = int(mond_x + tand_afstand * (tand + 1))
@@ -426,7 +423,7 @@ def speel():
         scherm.blit(uitleg, (42, 76))
 
         # Teken het poppetje.
-        teken_poppetje(scherm, poppetje_rect, teller, klik_animatie, punten, multiplier)
+        teken_poppetje(scherm, poppetje_rect, teller, klik_animatie, punten)
         teken_reset_knop(scherm, reset_knop, punten, multiplier, font_klein, font_shop)
 
         # Teken het informatiepaneel.
@@ -436,7 +433,7 @@ def speel():
         klik_tekst = font_middel.render(f"Per klik: {format_getal(klik_kracht * multiplier)}", True, GEEL)
         auto_tekst = font_middel.render(f"Per seconde: {format_getal(auto_spoken * multiplier)}", True, ROZE)
         multiplier_tekst = font_klein.render(f"Multiplier: x{format_getal(multiplier)}", True, GEEL)
-        eng_kracht = bereken_eng_niveau(punten, multiplier)
+        eng_kracht = bereken_eng_niveau(punten)
         eng_tekst = font_klein.render(f"Eng kracht: {format_getal(eng_kracht)}", True, SUBTEKST_KLEUR)
         scherm.blit(punten_tekst, (paneel_rect.x + 20, 55))
         scherm.blit(klik_tekst, (paneel_rect.x + 20, 120))
