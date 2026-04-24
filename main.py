@@ -30,18 +30,16 @@ def teken_achtergrond(scherm, teller):
         pygame.draw.ellipse(scherm, MIST_KLEUR, (mist_x, 380 + (i % 2) * 18, 220, 80))
 
 
-def bereken_eng_niveau(punten):
-    """Geef het eng-niveau terug.
+def bereken_eng_niveau(punten, multiplier=1.0):
+    """Geef de eng-kracht terug.
 
-    0 punten = niveau 0
-    1 t/m 9 = niveau 1
-    10 t/m 99 = niveau 2
-    100 t/m 999 = niveau 3
-    enzovoort.
+    Dit groeit door punten EN door resets.
+    Zo blijft het poppetje steeds enger worden,
+    ook als je opnieuw begint met een hogere multiplier.
     """
-    if punten < 1:
-        return 0
-    return int(math.log10(punten)) + 1
+    punt_kracht = math.log10(max(0, punten) + 1) * 2.6
+    multiplier_kracht = max(0.0, multiplier - 1.0) * 2.4
+    return punt_kracht + multiplier_kracht
 
 
 def format_getal(getal):
@@ -64,49 +62,51 @@ def bereken_reset_bonus(punten):
     return (int(punten) // 50) / 10
 
 
-def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
+def teken_poppetje(scherm, rect, teller, klik_animatie, punten, multiplier):
     """Teken het enge poppetje waar je op moet klikken."""
     x = rect.x
     y = rect.y
     breedte = rect.width
-    eng_niveau = bereken_eng_niveau(punten)
-    basis_niveau = min(eng_niveau, 6)
-    extra_niveau = max(0, eng_niveau - 6)
+    eng_kracht = bereken_eng_niveau(punten, multiplier)
+    eng_fase = int(eng_kracht)
+    basis_niveau = min(eng_kracht, 6)
+    extra_niveau = max(0.0, eng_kracht - 6)
+    extra_tellen = max(0, int(extra_niveau))
 
     # Bij een klik wordt het poppetje heel even groter.
     extra = 10 if klik_animatie > 0 else 0
-    enge_golf = math.sin(teller * (0.05 + eng_niveau * 0.003)) * min(eng_niveau, 12)
+    enge_golf = math.sin(teller * (0.05 + eng_kracht * 0.003)) * min(eng_kracht, 18)
     lijf = pygame.Rect(
         x + 55 - extra // 2,
-        y + 78 - extra // 2 - min(extra_niveau, 10),
+        int(y + 78 - extra // 2 - min(extra_niveau * 2, 22)),
         110 + extra,
-        150 + extra + min(extra_niveau * 4, 36),
+        int(150 + extra + min(extra_niveau * 6, 72)),
     )
     hoofd_midden = (x + breedte // 2, y + 75 + int(enge_golf * 0.4))
-    hoofd_straal = 52 + extra // 3 + min(extra_niveau, 8)
+    hoofd_straal = int(52 + extra // 3 + min(extra_niveau * 1.5, 20))
     huid_kleur = (
-        max(0, PANEEL_KLEUR[0] - basis_niveau * 3 - extra_niveau * 2),
-        max(0, PANEEL_KLEUR[1] - basis_niveau * 2 - extra_niveau),
-        max(0, PANEEL_KLEUR[2] - basis_niveau * 5 - extra_niveau * 4),
+        int(max(0, PANEEL_KLEUR[0] - basis_niveau * 3 - extra_niveau * 2)),
+        int(max(0, PANEEL_KLEUR[1] - basis_niveau * 2 - extra_niveau)),
+        int(max(0, PANEEL_KLEUR[2] - basis_niveau * 5 - extra_niveau * 4)),
     )
     rand_kleur = (
-        min(255, PANEEL_RAND[0] + basis_niveau * 12 + extra_niveau * 6),
-        max(0, PANEEL_RAND[1] - basis_niveau * 4 - extra_niveau * 2),
-        min(255, PANEEL_RAND[2] + basis_niveau * 8 + extra_niveau * 4),
+        int(min(255, PANEEL_RAND[0] + basis_niveau * 12 + extra_niveau * 6)),
+        int(max(0, PANEEL_RAND[1] - basis_niveau * 4 - extra_niveau * 2)),
+        int(min(255, PANEEL_RAND[2] + basis_niveau * 8 + extra_niveau * 4)),
     )
 
     # Schaduw.
     pygame.draw.ellipse(scherm, ZWART, (x + 35, y + 220, 160, 35))
 
     # Hoe enger het niveau, hoe sterker de aura rond het hoofd.
-    if eng_niveau >= 2:
-        aantal_ringen = 1 + min(extra_niveau, 4)
+    if eng_kracht >= 2:
+        aantal_ringen = 1 + int(math.sqrt(extra_tellen + 1))
         for ring in range(aantal_ringen):
-            aura_straal = hoofd_straal + 8 + basis_niveau * 3 + ring * (10 + min(extra_niveau, 6))
+            aura_straal = int(hoofd_straal + 8 + basis_niveau * 3 + ring * (10 + min(extra_niveau, 12)))
             aura_kleur = (
-                min(255, 70 + extra_niveau * 10 + ring * 18),
+                int(min(255, 70 + extra_niveau * 10 + ring * 18)),
                 20,
-                min(255, 80 + extra_niveau * 12 + ring * 24),
+                int(min(255, 80 + extra_niveau * 12 + ring * 24)),
             )
             pygame.draw.circle(scherm, aura_kleur, hoofd_midden, aura_straal, 3 if ring == 0 else 2)
 
@@ -123,8 +123,8 @@ def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
 
     # Hoorns bij hogere niveaus.
     if basis_niveau >= 4:
-        hoorn_hoogte = 28 + extra_niveau * 6
-        hoorn_buiten = 18 + extra_niveau * 2
+        hoorn_hoogte = int(28 + extra_niveau * 6)
+        hoorn_buiten = int(18 + extra_niveau * 2)
         pygame.draw.polygon(
             scherm,
             rand_kleur,
@@ -138,7 +138,7 @@ def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
 
     # Ogen - rood als het echt eng is.
     oog_kleur = ROZE if klik_animatie > 0 else ROOD
-    oog_straal = 10 + min(basis_niveau, 3) + min(extra_niveau, 5)
+    oog_straal = int(10 + min(basis_niveau, 3) + min(extra_niveau, 8))
     pygame.draw.circle(scherm, oog_kleur, (x + 88, y + 65), oog_straal)
     pygame.draw.circle(scherm, oog_kleur, (x + 132, y + 65), oog_straal)
     pygame.draw.circle(scherm, WIT, (x + 91, y + 62), 3)
@@ -148,13 +148,25 @@ def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
         pygame.draw.line(scherm, ZWART, (x + 74, y + 48), (x + 97, y + 58), 3)
         pygame.draw.line(scherm, ZWART, (x + 123, y + 58), (x + 146, y + 48), 3)
 
-    if eng_niveau >= 5:
-        pygame.draw.circle(scherm, oog_kleur, (x + 110, y + 34), 8 + min(extra_niveau, 4))
+    if eng_kracht >= 5:
+        pygame.draw.circle(scherm, oog_kleur, (x + 110, y + 34), int(8 + min(extra_niveau, 6)))
         pygame.draw.circle(scherm, WIT, (x + 112, y + 31), 2)
 
-    if eng_niveau >= 8:
-        pygame.draw.circle(scherm, oog_kleur, (x + 68, y + 104), 5 + min(extra_niveau, 3))
-        pygame.draw.circle(scherm, oog_kleur, (x + 152, y + 104), 5 + min(extra_niveau, 3))
+    if eng_kracht >= 8:
+        pygame.draw.circle(scherm, oog_kleur, (x + 68, y + 104), int(5 + min(extra_niveau, 5)))
+        pygame.draw.circle(scherm, oog_kleur, (x + 152, y + 104), int(5 + min(extra_niveau, 5)))
+
+    if extra_tellen > 0:
+        zwevende_ogen = 2 + int(math.sqrt(extra_tellen) * 3)
+        for i in range(zwevende_ogen):
+            hoek = teller * 0.02 + i * (math.tau / zwevende_ogen)
+            oog_afstand = hoofd_straal + 42 + (i % 4) * 12 + extra_niveau * 1.7
+            klein_oog_x = hoofd_midden[0] + int(math.cos(hoek) * oog_afstand)
+            klein_oog_y = hoofd_midden[1] + int(math.sin(hoek) * oog_afstand * 0.55)
+            klein_oog_straal = 3 + min(extra_tellen // 3, 6)
+            pygame.draw.circle(scherm, ZWART, (klein_oog_x, klein_oog_y), klein_oog_straal + 2)
+            pygame.draw.circle(scherm, oog_kleur, (klein_oog_x, klein_oog_y), klein_oog_straal)
+            pygame.draw.circle(scherm, WIT, (klein_oog_x + 1, klein_oog_y - 1), 1)
 
     # Mond.
     if basis_niveau <= 1 and extra_niveau == 0:
@@ -175,18 +187,18 @@ def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
                 [(tand_midden - 6, y + 103), (tand_midden, y + 103 + tand_hoogte), (tand_midden + 6, y + 103)],
             )
 
-    if eng_niveau >= 6:
-        vonken = 6 + extra_niveau * 2
+    if eng_kracht >= 6:
+        vonken = 6 + extra_tellen * 3
         for i in range(vonken):
             hoek = teller * 0.03 + i * (math.tau / max(vonken, 1))
-            afstand = hoofd_straal + 32 + (i % 3) * 10 + min(extra_niveau * 3, 30)
+            afstand = hoofd_straal + 32 + (i % 3) * 10 + min(extra_niveau * 5, 70)
             vonk_x = hoofd_midden[0] + int(math.cos(hoek) * afstand)
             vonk_y = hoofd_midden[1] + int(math.sin(hoek) * afstand * 0.7)
             pygame.draw.line(scherm, ROOD, (vonk_x, vonk_y), (vonk_x - 8, vonk_y - 14), 2)
             pygame.draw.line(scherm, ROOD, (vonk_x, vonk_y), (vonk_x + 8, vonk_y - 12), 2)
 
-    if extra_niveau > 0:
-        for i in range(extra_niveau):
+    if extra_tellen > 0:
+        for i in range(extra_tellen * 2):
             kras_x = x + 72 + (i * 17) % 76
             kras_y = y + 94 + (i * 23) % 112
             kras_lengte = 10 + (i % 3) * 4
@@ -198,7 +210,7 @@ def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
     font_klein = pygame.font.SysFont("Arial", 16, bold=True)
     tekst = font.render("KLIK!", True, GEEL)
     scherm.blit(tekst, (x + breedte // 2 - tekst.get_width() // 2, y + 245))
-    niveau_tekst = font_klein.render(f"Eng niveau {eng_niveau}", True, ROZE)
+    niveau_tekst = font_klein.render(f"Eng fase {eng_fase}", True, ROZE)
     scherm.blit(niveau_tekst, (x + breedte // 2 - niveau_tekst.get_width() // 2, y + 268))
 
 
@@ -414,7 +426,7 @@ def speel():
         scherm.blit(uitleg, (42, 76))
 
         # Teken het poppetje.
-        teken_poppetje(scherm, poppetje_rect, teller, klik_animatie, punten)
+        teken_poppetje(scherm, poppetje_rect, teller, klik_animatie, punten, multiplier)
         teken_reset_knop(scherm, reset_knop, punten, multiplier, font_klein, font_shop)
 
         # Teken het informatiepaneel.
@@ -424,9 +436,8 @@ def speel():
         klik_tekst = font_middel.render(f"Per klik: {format_getal(klik_kracht * multiplier)}", True, GEEL)
         auto_tekst = font_middel.render(f"Per seconde: {format_getal(auto_spoken * multiplier)}", True, ROZE)
         multiplier_tekst = font_klein.render(f"Multiplier: x{format_getal(multiplier)}", True, GEEL)
-        eng_niveau = bereken_eng_niveau(punten)
-        volgende_grens = 1 if punten < 1 else 10 ** eng_niveau
-        eng_tekst = font_klein.render(f"Volgende enge vorm bij: {volgende_grens}", True, SUBTEKST_KLEUR)
+        eng_kracht = bereken_eng_niveau(punten, multiplier)
+        eng_tekst = font_klein.render(f"Eng kracht: {format_getal(eng_kracht)}", True, SUBTEKST_KLEUR)
         scherm.blit(punten_tekst, (paneel_rect.x + 20, 55))
         scherm.blit(klik_tekst, (paneel_rect.x + 20, 120))
         scherm.blit(auto_tekst, (paneel_rect.x + 20, 160))
