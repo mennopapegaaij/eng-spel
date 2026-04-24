@@ -8,6 +8,76 @@ import pygame
 from instellingen import *
 
 
+BASIS_UPGRADES = [
+    ("Sterke klik", "+1 per klik", 40, 1, 0),
+    ("Spookhulp", "+1 per seconde", 100, 0, 1),
+    ("Scherpe klik", "+4 per klik", 180, 4, 0),
+    ("Kleine geest", "+4 per seconde", 280, 0, 4),
+    ("Snelle vingers", "+10 per klik", 420, 10, 0),
+    ("Spokenclub", "+9 per seconde", 620, 0, 9),
+    ("Mega klik", "+22 per klik", 900, 22, 0),
+    ("Mega spook", "+18 per seconde", 1200, 0, 18),
+    ("Donderklik", "+45 per klik", 1700, 45, 0),
+    ("Geestenstorm", "+35 per seconde", 2300, 0, 35),
+    ("Nachtklauw", "+90 per klik", 3400, 90, 0),
+    ("Monsterleger", "+70 per seconde", 4600, 0, 70),
+    ("Eindklik", "+200 per klik", 7000, 200, 0),
+    ("Nachtkoning", "+150 per seconde", 8500, 0, 150),
+    ("Schaduwklauw", "+320 per klik", 10500, 320, 0),
+    ("Mistwachter", "+240 per seconde", 12500, 0, 240),
+    ("Griezelgrijp", "+460 per klik", 15000, 460, 0),
+    ("Gloomspook", "+320 per seconde", 18000, 0, 320),
+    ("Donkernagel", "+650 per klik", 22000, 650, 0),
+    ("Nachtmist", "+430 per seconde", 27000, 0, 430),
+    ("Spookraket", "+900 per klik", 33000, 900, 0),
+    ("Huilwind", "+580 per seconde", 40000, 0, 580),
+    ("Vampierbeet", "+1250 per klik", 49000, 1250, 0),
+    ("Grafwolk", "+780 per seconde", 60000, 0, 780),
+    ("Paniekpoot", "+1700 per klik", 74000, 1700, 0),
+    ("Schaduwkoor", "+1050 per seconde", 90000, 0, 1050),
+    ("Monsterhap", "+2300 per klik", 110000, 2300, 0),
+    ("Kerkhofmist", "+1400 per seconde", 135000, 0, 1400),
+    ("Donderklauw", "+3100 per klik", 165000, 3100, 0),
+    ("Spooktrein", "+1900 per seconde", 200000, 0, 1900),
+    ("Nachtstorm", "+4200 per klik", 245000, 4200, 0),
+    ("Fluistergrot", "+2600 per seconde", 300000, 0, 2600),
+    ("Demonensprong", "+5600 per klik", 365000, 5600, 0),
+    ("IJsspoor", "+3500 per seconde", 445000, 0, 3500),
+    ("Heksenklap", "+7500 per klik", 540000, 7500, 0),
+    ("Spookslot", "+4700 per seconde", 655000, 0, 4700),
+    ("Ravenvlucht", "+10000 per klik", 790000, 10000, 0),
+    ("Maanschaduw", "+6300 per seconde", 950000, 0, 6300),
+    ("Bottenbreker", "+13500 per klik", 1150000, 13500, 0),
+    ("Mistleger", "+8400 per seconde", 1380000, 0, 8400),
+    ("Dondermonster", "+18000 per klik", 1660000, 18000, 0),
+    ("Schimfabriek", "+11200 per seconde", 2000000, 0, 11200),
+    ("Nachtkraker", "+24000 per klik", 2400000, 24000, 0),
+    ("Donkergolf", "+15000 per seconde", 2880000, 0, 15000),
+    ("Spookkanon", "+32000 per klik", 3460000, 32000, 0),
+    ("Grafstorm", "+20000 per seconde", 4150000, 0, 20000),
+    ("Schaduwbeul", "+43000 per klik", 4980000, 43000, 0),
+    ("Dondermaan", "+27000 per seconde", 5980000, 0, 27000),
+    ("Hellebeet", "+58000 per klik", 7180000, 58000, 0),
+    ("Spookplaneet", "+36000 per seconde", 8620000, 0, 36000),
+    ("Krakenklauw", "+78000 per klik", 10350000, 78000, 0),
+    ("Eeuwige mist", "+48000 per seconde", 12400000, 0, 48000),
+    ("Nachtreus", "+105000 per klik", 14900000, 105000, 0),
+    ("Schaduwvloot", "+64000 per seconde", 17900000, 0, 64000),
+    ("Bottenstorm", "+142000 per klik", 21500000, 142000, 0),
+    ("Griezelkern", "+85000 per seconde", 25800000, 0, 85000),
+    ("Hellevlam", "+190000 per klik", 31000000, 190000, 0),
+    ("Spookster", "+113000 per seconde", 37200000, 0, 113000),
+    ("Donderwolf", "+255000 per klik", 44600000, 255000, 0),
+    ("Maanleger", "+150000 per seconde", 53500000, 0, 150000),
+    ("Schrikbarst", "+340000 per klik", 64200000, 340000, 0),
+    ("Duistere zon", "+200000 per seconde", 77000000, 0, 200000),
+    ("Eindmonster", "+460000 per klik", 92400000, 460000, 0),
+    ("Spookheelal", "+270000 per seconde", 110000000, 0, 270000),
+]
+SHOP_VOORVOEGSELS = ["Mist", "Spook", "Schim", "Graf", "Nacht", "Donder", "Helle", "Bot", "Maan", "Duister"]
+SHOP_ACHTERVOEGSELS = ["Klauw", "Vlam", "Storm", "Tand", "Wolk", "Beet", "Kern", "Poot", "Golf", "Ster"]
+
+
 def teken_achtergrond(scherm, teller):
     """Teken de donkere lucht, maan en mist."""
     scherm.fill(ACHTERGROND)
@@ -244,112 +314,48 @@ def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
 
 
 def maak_upgrades():
-    """Maak alle shop-dingen.
-
-    Elke upgrade heeft:
-    - een naam
-    - uitleg
-    - vaste prijs
-    - bonus voor klikken of per seconde
-    """
-    basis_upgrades = [
-        ("Sterke klik", "+1 per klik", 40, 1, 0),
-        ("Spookhulp", "+1 per seconde", 100, 0, 1),
-        ("Scherpe klik", "+4 per klik", 180, 4, 0),
-        ("Kleine geest", "+4 per seconde", 280, 0, 4),
-        ("Snelle vingers", "+10 per klik", 420, 10, 0),
-        ("Spokenclub", "+9 per seconde", 620, 0, 9),
-        ("Mega klik", "+22 per klik", 900, 22, 0),
-        ("Mega spook", "+18 per seconde", 1200, 0, 18),
-        ("Donderklik", "+45 per klik", 1700, 45, 0),
-        ("Geestenstorm", "+35 per seconde", 2300, 0, 35),
-        ("Nachtklauw", "+90 per klik", 3400, 90, 0),
-        ("Monsterleger", "+70 per seconde", 4600, 0, 70),
-        ("Eindklik", "+200 per klik", 7000, 200, 0),
-        ("Nachtkoning", "+150 per seconde", 8500, 0, 150),
-        ("Schaduwklauw", "+320 per klik", 10500, 320, 0),
-        ("Mistwachter", "+240 per seconde", 12500, 0, 240),
-        ("Griezelgrijp", "+460 per klik", 15000, 460, 0),
-        ("Gloomspook", "+320 per seconde", 18000, 0, 320),
-        ("Donkernagel", "+650 per klik", 22000, 650, 0),
-        ("Nachtmist", "+430 per seconde", 27000, 0, 430),
-        ("Spookraket", "+900 per klik", 33000, 900, 0),
-        ("Huilwind", "+580 per seconde", 40000, 0, 580),
-        ("Vampierbeet", "+1250 per klik", 49000, 1250, 0),
-        ("Grafwolk", "+780 per seconde", 60000, 0, 780),
-        ("Paniekpoot", "+1700 per klik", 74000, 1700, 0),
-        ("Schaduwkoor", "+1050 per seconde", 90000, 0, 1050),
-        ("Monsterhap", "+2300 per klik", 110000, 2300, 0),
-        ("Kerkhofmist", "+1400 per seconde", 135000, 0, 1400),
-        ("Donderklauw", "+3100 per klik", 165000, 3100, 0),
-        ("Spooktrein", "+1900 per seconde", 200000, 0, 1900),
-        ("Nachtstorm", "+4200 per klik", 245000, 4200, 0),
-        ("Fluistergrot", "+2600 per seconde", 300000, 0, 2600),
-        ("Demonensprong", "+5600 per klik", 365000, 5600, 0),
-        ("IJsspoor", "+3500 per seconde", 445000, 0, 3500),
-        ("Heksenklap", "+7500 per klik", 540000, 7500, 0),
-        ("Spookslot", "+4700 per seconde", 655000, 0, 4700),
-        ("Ravenvlucht", "+10000 per klik", 790000, 10000, 0),
-        ("Maanschaduw", "+6300 per seconde", 950000, 0, 6300),
-        ("Bottenbreker", "+13500 per klik", 1150000, 13500, 0),
-        ("Mistleger", "+8400 per seconde", 1380000, 0, 8400),
-        ("Dondermonster", "+18000 per klik", 1660000, 18000, 0),
-        ("Schimfabriek", "+11200 per seconde", 2000000, 0, 11200),
-        ("Nachtkraker", "+24000 per klik", 2400000, 24000, 0),
-        ("Donkergolf", "+15000 per seconde", 2880000, 0, 15000),
-        ("Spookkanon", "+32000 per klik", 3460000, 32000, 0),
-        ("Grafstorm", "+20000 per seconde", 4150000, 0, 20000),
-        ("Schaduwbeul", "+43000 per klik", 4980000, 43000, 0),
-        ("Dondermaan", "+27000 per seconde", 5980000, 0, 27000),
-        ("Hellebeet", "+58000 per klik", 7180000, 58000, 0),
-        ("Spookplaneet", "+36000 per seconde", 8620000, 0, 36000),
-        ("Krakenklauw", "+78000 per klik", 10350000, 78000, 0),
-        ("Eeuwige mist", "+48000 per seconde", 12400000, 0, 48000),
-        ("Nachtreus", "+105000 per klik", 14900000, 105000, 0),
-        ("Schaduwvloot", "+64000 per seconde", 17900000, 0, 64000),
-        ("Bottenstorm", "+142000 per klik", 21500000, 142000, 0),
-        ("Griezelkern", "+85000 per seconde", 25800000, 0, 85000),
-        ("Hellevlam", "+190000 per klik", 31000000, 190000, 0),
-        ("Spookster", "+113000 per seconde", 37200000, 0, 113000),
-        ("Donderwolf", "+255000 per klik", 44600000, 255000, 0),
-        ("Maanleger", "+150000 per seconde", 53500000, 0, 150000),
-        ("Schrikbarst", "+340000 per klik", 64200000, 340000, 0),
-        ("Duistere zon", "+200000 per seconde", 77000000, 0, 200000),
-        ("Eindmonster", "+460000 per klik", 92400000, 460000, 0),
-        ("Spookheelal", "+270000 per seconde", 110000000, 0, 270000),
-    ]
-
-    upgrade_data = list(basis_upgrades)
-    voorvoegsels = ["Mist", "Spook", "Schim", "Graf", "Nacht", "Donder", "Helle", "Bot", "Maan", "Duister"]
-    achtervoegsels = ["Klauw", "Vlam", "Storm", "Tand", "Wolk", "Beet", "Kern", "Poot", "Golf", "Ster"]
-    laatste_kosten = upgrade_data[-1][2]
-    laatste_klik_bonus = max(upgrade[3] for upgrade in upgrade_data)
-    laatste_auto_bonus = max(upgrade[4] for upgrade in upgrade_data)
-
-    # Maak automatisch extra upgrades tot precies 1000 shop-dingen.
-    while len(upgrade_data) < 1000:
-        nummer = len(upgrade_data) - len(basis_upgrades) + 1
-        voor = voorvoegsels[len(upgrade_data) % len(voorvoegsels)]
-        achter = achtervoegsels[(len(upgrade_data) // len(voorvoegsels)) % len(achtervoegsels)]
-        titel = f"{voor}{achter}{nummer}"
-
-        if len(upgrade_data) % 2 == 0:
-            laatste_klik_bonus = int(laatste_klik_bonus * 1.12 + 5000 + nummer * 15)
-            bonus = laatste_klik_bonus
-            laatste_kosten = int(laatste_kosten * 1.13 + bonus * 14)
-            uitleg = f"+{format_getal(bonus)} klik"
-            upgrade_data.append((titel, uitleg, laatste_kosten, bonus, 0))
-        else:
-            laatste_auto_bonus = int(laatste_auto_bonus * 1.12 + 3500 + nummer * 12)
-            bonus = laatste_auto_bonus
-            laatste_kosten = int(laatste_kosten * 1.13 + bonus * 16)
-            uitleg = f"+{format_getal(bonus)} /s"
-            upgrade_data.append((titel, uitleg, laatste_kosten, 0, bonus))
-
+    """Maak de beginlijst voor de oneindige shop."""
     return [
         {"titel": titel, "uitleg": uitleg, "kosten": kosten, "klik_bonus": klik_bonus, "auto_bonus": auto_bonus}
-        for titel, uitleg, kosten, klik_bonus, auto_bonus in upgrade_data
+        for titel, uitleg, kosten, klik_bonus, auto_bonus in BASIS_UPGRADES
     ]
+
+
+def maak_volgende_upgrade(upgrades):
+    """Maak precies 1 nieuwe upgrade achteraan de shop."""
+    index = len(upgrades)
+    nummer = index - len(BASIS_UPGRADES) + 1
+    voor = SHOP_VOORVOEGSELS[index % len(SHOP_VOORVOEGSELS)]
+    achter = SHOP_ACHTERVOEGSELS[(index // len(SHOP_VOORVOEGSELS)) % len(SHOP_ACHTERVOEGSELS)]
+    titel = f"{voor}{achter} {format_getal(nummer)}"
+    vorige_kosten = upgrades[-1]["kosten"]
+
+    if index % 2 == 0:
+        vorige_bonus = upgrades[-2]["klik_bonus"]
+        bonus = int(vorige_bonus * 1.12 + 5000 + nummer * 15)
+        kosten = int(vorige_kosten * 1.13 + bonus * 14)
+        uitleg = f"+{format_getal(bonus)} klik"
+        return {"titel": titel, "uitleg": uitleg, "kosten": kosten, "klik_bonus": bonus, "auto_bonus": 0}
+
+    vorige_bonus = upgrades[-2]["auto_bonus"]
+    bonus = int(vorige_bonus * 1.12 + 3500 + nummer * 12)
+    kosten = int(vorige_kosten * 1.13 + bonus * 16)
+    uitleg = f"+{format_getal(bonus)} /s"
+    return {"titel": titel, "uitleg": uitleg, "kosten": kosten, "klik_bonus": 0, "auto_bonus": bonus}
+
+
+def zorg_voor_upgrades(upgrades, tot_index):
+    """Maak alleen zoveel shop-dingen als nu nodig zijn."""
+    while len(upgrades) <= tot_index:
+        upgrades.append(maak_volgende_upgrade(upgrades))
+
+
+def pak_shop_upgrades(upgrades, shop_pagina, vakken_per_pagina):
+    """Pak alleen de upgrades van de huidige shop-bladzijde."""
+    start = shop_pagina * vakken_per_pagina
+    eind = start + vakken_per_pagina
+    zorg_voor_upgrades(upgrades, eind - 1)
+    return upgrades[start:eind]
 
 
 def teken_paneel(scherm, paneel_rect):
@@ -397,18 +403,9 @@ def teken_shop_knop(scherm, rect, upgrade, punten, font_titel, font_klein):
 
 def kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina):
     """Ga naar de volgende pagina als je daar iets kunt kopen."""
-    volgende_pagina = shop_pagina + 1
-    max_pagina = (len(upgrades) - 1) // vakken_per_pagina
-
-    if volgende_pagina > max_pagina:
-        return shop_pagina
-
-    start = volgende_pagina * vakken_per_pagina
-    volgende_upgrades = upgrades[start : start + vakken_per_pagina]
-
+    volgende_upgrades = pak_shop_upgrades(upgrades, shop_pagina + 1, vakken_per_pagina)
     if any(punten >= upgrade["kosten"] for upgrade in volgende_upgrades):
-        return volgende_pagina
-
+        return shop_pagina + 1
     return shop_pagina
 
 
@@ -486,7 +483,6 @@ def speel():
     teller = 0
     upgrades = maak_upgrades()
     vakken_per_pagina = len(shop_vakken)
-    max_pagina = (len(upgrades) - 1) // vakken_per_pagina
 
     # Dit event geeft elke seconde automatische punten.
     auto_punt_event = pygame.USEREVENT + 1
@@ -529,13 +525,12 @@ def speel():
                     shop_pagina -= 1
 
                 # Ga naar de volgende shop-pagina.
-                elif volgende_pagina_knop.collidepoint(muis_pos) and shop_pagina < max_pagina:
+                elif volgende_pagina_knop.collidepoint(muis_pos):
                     shop_pagina += 1
 
                 # Klik op een shop-ding.
                 else:
-                    start = shop_pagina * vakken_per_pagina
-                    zichtbare_upgrades = upgrades[start : start + vakken_per_pagina]
+                    zichtbare_upgrades = pak_shop_upgrades(upgrades, shop_pagina, vakken_per_pagina)
 
                     for upgrade, rect in zip(zichtbare_upgrades, shop_vakken):
                         if rect.collidepoint(muis_pos) and punten >= upgrade["kosten"]:
@@ -576,21 +571,20 @@ def speel():
         scherm.blit(eng_tekst, (paneel_rect.x + 20, 212))
 
         winkel_tekst = font_middel.render("Shop", True, TEKST_KLEUR)
-        pagina_tekst = font_klein.render(f"Pagina {shop_pagina + 1}/{max_pagina + 1}", True, SUBTEKST_KLEUR)
+        pagina_tekst = font_klein.render(f"Pagina {shop_pagina + 1}", True, SUBTEKST_KLEUR)
         scherm.blit(winkel_tekst, (paneel_rect.x + 20, 220))
         scherm.blit(pagina_tekst, (paneel_rect.x + 210, 224))
 
         teken_pagina_knop(scherm, vorige_pagina_knop, "<", shop_pagina > 0, font_klein)
-        teken_pagina_knop(scherm, volgende_pagina_knop, ">", shop_pagina < max_pagina, font_klein)
+        teken_pagina_knop(scherm, volgende_pagina_knop, ">", True, font_klein)
 
         # Teken alleen de shop-dingen van deze pagina.
-        start = shop_pagina * vakken_per_pagina
-        zichtbare_upgrades = upgrades[start : start + vakken_per_pagina]
+        zichtbare_upgrades = pak_shop_upgrades(upgrades, shop_pagina, vakken_per_pagina)
         for upgrade, rect in zip(zichtbare_upgrades, shop_vakken):
             teken_shop_knop(scherm, rect, upgrade, punten, font_shop, font_shop_klein)
 
         # Kleine tip onderaan.
-        tip = font_klein.render("Tip: de shop springt zelf door als je genoeg punten hebt!", True, SUBTEKST_KLEUR)
+        tip = font_klein.render("Tip: de shop is oneindig en springt zelf door!", True, SUBTEKST_KLEUR)
         scherm.blit(tip, (38, 505))
 
         pygame.display.flip()
