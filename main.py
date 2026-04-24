@@ -40,11 +40,43 @@ def bereken_eng_niveau(punten):
 
 
 def format_getal(getal):
-    """Maak hele getallen netjes kort en decimalen met 1 cijfer."""
-    afgerond = round(getal, 1)
-    if afgerond == int(afgerond):
-        return str(int(afgerond))
-    return f"{afgerond:.1f}"
+    """Maak grote getallen kort, zodat ze op het scherm passen."""
+    suffixen = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"]
+
+    if isinstance(getal, int):
+        negatief = getal < 0
+        tekst_getal = str(abs(getal))
+
+        if len(tekst_getal) <= 3:
+            return f"-{tekst_getal}" if negatief else tekst_getal
+
+        groep = (len(tekst_getal) - 1) // 3
+        if groep < len(suffixen):
+            eerste_stuk = len(tekst_getal) - groep * 3
+            hoofd = tekst_getal[:eerste_stuk]
+            decimaal = tekst_getal[eerste_stuk : eerste_stuk + 1]
+            tekst = f"{hoofd}.{decimaal}{suffixen[groep]}" if decimaal and decimaal != "0" else f"{hoofd}{suffixen[groep]}"
+            return f"-{tekst}" if negatief else tekst
+
+        macht = len(tekst_getal) - 1
+        tekst = f"{tekst_getal[0]}.{tekst_getal[1:3]}e{macht}"
+        return f"-{tekst}" if negatief else tekst
+
+    waarde = float(getal)
+    negatief = waarde < 0
+    waarde = abs(waarde)
+
+    if waarde < 1000:
+        afgerond = round(waarde, 1)
+        tekst = str(int(afgerond)) if afgerond == int(afgerond) else f"{afgerond:.1f}"
+        return f"-{tekst}" if negatief else tekst
+
+    groep = min(int(math.log10(waarde) // 3), len(suffixen) - 1)
+    klein = waarde / (1000 ** groep)
+    tekst = f"{klein:.1f}{suffixen[groep]}"
+    if tekst.endswith(".0" + suffixen[groep]):
+        tekst = f"{int(klein)}{suffixen[groep]}"
+    return f"-{tekst}" if negatief else tekst
 
 
 def bereken_reset_bonus(punten):
@@ -220,7 +252,7 @@ def maak_upgrades():
     - vaste prijs
     - bonus voor klikken of per seconde
     """
-    upgrade_data = [
+    basis_upgrades = [
         ("Sterke klik", "+1 per klik", 40, 1, 0),
         ("Spookhulp", "+1 per seconde", 100, 0, 1),
         ("Scherpe klik", "+4 per klik", 180, 4, 0),
@@ -287,6 +319,33 @@ def maak_upgrades():
         ("Spookheelal", "+270000 per seconde", 110000000, 0, 270000),
     ]
 
+    upgrade_data = list(basis_upgrades)
+    voorvoegsels = ["Mist", "Spook", "Schim", "Graf", "Nacht", "Donder", "Helle", "Bot", "Maan", "Duister"]
+    achtervoegsels = ["Klauw", "Vlam", "Storm", "Tand", "Wolk", "Beet", "Kern", "Poot", "Golf", "Ster"]
+    laatste_kosten = upgrade_data[-1][2]
+    laatste_klik_bonus = max(upgrade[3] for upgrade in upgrade_data)
+    laatste_auto_bonus = max(upgrade[4] for upgrade in upgrade_data)
+
+    # Maak automatisch extra upgrades tot precies 1000 shop-dingen.
+    while len(upgrade_data) < 1000:
+        nummer = len(upgrade_data) - len(basis_upgrades) + 1
+        voor = voorvoegsels[len(upgrade_data) % len(voorvoegsels)]
+        achter = achtervoegsels[(len(upgrade_data) // len(voorvoegsels)) % len(achtervoegsels)]
+        titel = f"{voor}{achter}{nummer}"
+
+        if len(upgrade_data) % 2 == 0:
+            laatste_klik_bonus = int(laatste_klik_bonus * 1.12 + 5000 + nummer * 15)
+            bonus = laatste_klik_bonus
+            laatste_kosten = int(laatste_kosten * 1.13 + bonus * 14)
+            uitleg = f"+{format_getal(bonus)} klik"
+            upgrade_data.append((titel, uitleg, laatste_kosten, bonus, 0))
+        else:
+            laatste_auto_bonus = int(laatste_auto_bonus * 1.12 + 3500 + nummer * 12)
+            bonus = laatste_auto_bonus
+            laatste_kosten = int(laatste_kosten * 1.13 + bonus * 16)
+            uitleg = f"+{format_getal(bonus)} /s"
+            upgrade_data.append((titel, uitleg, laatste_kosten, 0, bonus))
+
     return [
         {"titel": titel, "uitleg": uitleg, "kosten": kosten, "klik_bonus": klik_bonus, "auto_bonus": auto_bonus}
         for titel, uitleg, kosten, klik_bonus, auto_bonus in upgrade_data
@@ -329,7 +388,7 @@ def teken_shop_knop(scherm, rect, upgrade, punten, font_titel, font_klein):
 
     titel_tekst = font_titel.render(upgrade["titel"], True, TEKST_KLEUR)
     uitleg_tekst = font_klein.render(upgrade["uitleg"], True, SUBTEKST_KLEUR)
-    kosten_tekst = font_klein.render(f"{upgrade['kosten']} p", True, GEEL)
+    kosten_tekst = font_klein.render(f"{format_getal(upgrade['kosten'])} p", True, GEEL)
 
     scherm.blit(titel_tekst, (rect.x + 8, rect.y + 6))
     scherm.blit(uitleg_tekst, (rect.x + 8, rect.y + 24))
