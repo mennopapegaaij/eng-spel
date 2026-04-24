@@ -44,6 +44,26 @@ def bereken_eng_niveau(punten):
     return int(math.log10(punten)) + 1
 
 
+def format_getal(getal):
+    """Maak hele getallen netjes kort en decimalen met 1 cijfer."""
+    afgerond = round(getal, 1)
+    if afgerond == int(afgerond):
+        return str(int(afgerond))
+    return f"{afgerond:.1f}"
+
+
+def bereken_reset_bonus(punten):
+    """Geef de resetbonus terug.
+
+    Elke 50 punten geeft +0.1 multiplier.
+    Dus:
+    - 0 t/m 49 punten = +0.0x
+    - 50 t/m 99 punten = +0.1x
+    - 100 t/m 149 punten = +0.2x
+    """
+    return (int(punten) // 50) / 10
+
+
 def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
     """Teken het enge poppetje waar je op moet klikken."""
     x = rect.x
@@ -218,15 +238,29 @@ def teken_pagina_knop(scherm, rect, tekst, actief, font):
     )
 
 
-def teken_reset_knop(scherm, rect, font):
-    """Teken de resetknop."""
-    pygame.draw.rect(scherm, KNOP_KLEUR, rect, border_radius=14)
-    pygame.draw.rect(scherm, ROOD, rect, 3, border_radius=14)
+def teken_reset_knop(scherm, rect, punten, multiplier, font, font_klein):
+    """Teken de resetknop met de bonus die je nu kunt verdienen."""
+    reset_bonus = bereken_reset_bonus(punten)
+    knop_kleur = KNOP_KLEUR if reset_bonus > 0 else KNOP_UIT
+    rand_kleur = ROOD if reset_bonus > 0 else PANEEL_RAND
 
-    tekst_img = font.render("Reset +1 multiplier", True, TEKST_KLEUR)
+    pygame.draw.rect(scherm, knop_kleur, rect, border_radius=14)
+    pygame.draw.rect(scherm, rand_kleur, rect, 3, border_radius=14)
+
+    bonus_tekst = font.render(f"Reset voor +{format_getal(reset_bonus)}x", True, TEKST_KLEUR)
     scherm.blit(
-        tekst_img,
-        (rect.x + rect.width // 2 - tekst_img.get_width() // 2, rect.y + 14),
+        bonus_tekst,
+        (rect.x + rect.width // 2 - bonus_tekst.get_width() // 2, rect.y + 10),
+    )
+
+    if reset_bonus > 0:
+        uitleg = font_klein.render(f"Nieuwe multiplier: x{format_getal(multiplier + reset_bonus)}", True, GEEL)
+    else:
+        uitleg = font_klein.render("Spaar 50 punten voor +0.1x", True, SUBTEKST_KLEUR)
+
+    scherm.blit(
+        uitleg,
+        (rect.x + rect.width // 2 - uitleg.get_width() // 2, rect.y + 42),
     )
 
 
@@ -255,11 +289,11 @@ def speel():
     shop_vakken = maak_shop_vakken(paneel_rect)
     vorige_pagina_knop = pygame.Rect(paneel_rect.x + 176, paneel_rect.y + 176, 32, 28)
     volgende_pagina_knop = pygame.Rect(paneel_rect.x + 252, paneel_rect.y + 176, 32, 28)
-    reset_knop = pygame.Rect(55, 430, 220, 52)
+    reset_knop = pygame.Rect(45, 415, 250, 74)
 
     # Spelvariabelen.
     punten, klik_kracht, auto_spoken, shop_pagina = reset_speltoestand()
-    multiplier = 1
+    multiplier = 1.0
     klik_animatie = 0
     teller = 0
     upgrades = maak_upgrades()
@@ -292,7 +326,11 @@ def speel():
 
                 # Reset het spel en maak de multiplier groter.
                 elif reset_knop.collidepoint(muis_pos):
-                    multiplier += 1
+                    reset_bonus = bereken_reset_bonus(punten)
+                    if reset_bonus <= 0:
+                        continue
+
+                    multiplier += reset_bonus
                     punten, klik_kracht, auto_spoken, shop_pagina = reset_speltoestand()
                     klik_animatie = 0
 
@@ -329,15 +367,15 @@ def speel():
 
         # Teken het poppetje.
         teken_poppetje(scherm, poppetje_rect, teller, klik_animatie, punten)
-        teken_reset_knop(scherm, reset_knop, font_klein)
+        teken_reset_knop(scherm, reset_knop, punten, multiplier, font_klein, font_shop)
 
         # Teken het informatiepaneel.
         teken_paneel(scherm, paneel_rect)
 
-        punten_tekst = font_groot.render(f"Punten: {punten}", True, TEKST_KLEUR)
-        klik_tekst = font_middel.render(f"Per klik: {klik_kracht * multiplier}", True, GEEL)
-        auto_tekst = font_middel.render(f"Per seconde: {auto_spoken * multiplier}", True, ROZE)
-        multiplier_tekst = font_klein.render(f"Multiplier: x{multiplier}", True, GEEL)
+        punten_tekst = font_groot.render(f"Punten: {format_getal(punten)}", True, TEKST_KLEUR)
+        klik_tekst = font_middel.render(f"Per klik: {format_getal(klik_kracht * multiplier)}", True, GEEL)
+        auto_tekst = font_middel.render(f"Per seconde: {format_getal(auto_spoken * multiplier)}", True, ROZE)
+        multiplier_tekst = font_klein.render(f"Multiplier: x{format_getal(multiplier)}", True, GEEL)
         eng_niveau = bereken_eng_niveau(punten)
         volgende_grens = 1 if punten < 1 else 10 ** eng_niveau
         eng_tekst = font_klein.render(f"Volgende enge vorm bij: {volgende_grens}", True, SUBTEKST_KLEUR)
@@ -363,7 +401,7 @@ def speel():
 
         # Kleine tip onderaan.
         tip = font_klein.render("Tip: gebruik < en > voor meer shop-dingen!", True, SUBTEKST_KLEUR)
-        scherm.blit(tip, (38, 495))
+        scherm.blit(tip, (38, 505))
 
         pygame.display.flip()
         klok.tick(FPS)
