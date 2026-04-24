@@ -9,7 +9,7 @@ Een simpel clicker-spel in Python met `pygame`.
 - Koop `Spookhulp` voor automatische punten per seconde
 - Koop `Mega klik` voor nog veel meer punten per klik
 - Koop `Mega spook` voor nog meer automatische punten per seconde
-- Er zijn nu nog veel meer shop-dingen verdeeld over meerdere pagina's
+- Er zijn nu 64 shop-dingen verdeeld over veel pagina's
 
 ## Starten
 
