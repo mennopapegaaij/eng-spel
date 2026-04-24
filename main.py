@@ -70,31 +70,45 @@ def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
     y = rect.y
     breedte = rect.width
     eng_niveau = bereken_eng_niveau(punten)
-    visueel_niveau = min(eng_niveau, 6)
+    basis_niveau = min(eng_niveau, 6)
+    extra_niveau = max(0, eng_niveau - 6)
 
     # Bij een klik wordt het poppetje heel even groter.
     extra = 10 if klik_animatie > 0 else 0
-    lijf = pygame.Rect(x + 55 - extra // 2, y + 78 - extra // 2, 110 + extra, 150 + extra)
-    hoofd_midden = (x + breedte // 2, y + 75)
-    hoofd_straal = 52 + extra // 3
+    enge_golf = math.sin(teller * (0.05 + eng_niveau * 0.003)) * min(eng_niveau, 12)
+    lijf = pygame.Rect(
+        x + 55 - extra // 2,
+        y + 78 - extra // 2 - min(extra_niveau, 10),
+        110 + extra,
+        150 + extra + min(extra_niveau * 4, 36),
+    )
+    hoofd_midden = (x + breedte // 2, y + 75 + int(enge_golf * 0.4))
+    hoofd_straal = 52 + extra // 3 + min(extra_niveau, 8)
     huid_kleur = (
-        max(0, PANEEL_KLEUR[0] - visueel_niveau * 3),
-        max(0, PANEEL_KLEUR[1] - visueel_niveau * 2),
-        max(0, PANEEL_KLEUR[2] - visueel_niveau * 5),
+        max(0, PANEEL_KLEUR[0] - basis_niveau * 3 - extra_niveau * 2),
+        max(0, PANEEL_KLEUR[1] - basis_niveau * 2 - extra_niveau),
+        max(0, PANEEL_KLEUR[2] - basis_niveau * 5 - extra_niveau * 4),
     )
     rand_kleur = (
-        min(255, PANEEL_RAND[0] + visueel_niveau * 12),
-        max(0, PANEEL_RAND[1] - visueel_niveau * 4),
-        min(255, PANEEL_RAND[2] + visueel_niveau * 8),
+        min(255, PANEEL_RAND[0] + basis_niveau * 12 + extra_niveau * 6),
+        max(0, PANEEL_RAND[1] - basis_niveau * 4 - extra_niveau * 2),
+        min(255, PANEEL_RAND[2] + basis_niveau * 8 + extra_niveau * 4),
     )
 
     # Schaduw.
     pygame.draw.ellipse(scherm, ZWART, (x + 35, y + 220, 160, 35))
 
     # Hoe enger het niveau, hoe sterker de aura rond het hoofd.
-    if visueel_niveau >= 2:
-        aura_straal = hoofd_straal + 8 + visueel_niveau * 3
-        pygame.draw.circle(scherm, (70, 20, 80), hoofd_midden, aura_straal, 3)
+    if eng_niveau >= 2:
+        aantal_ringen = 1 + min(extra_niveau, 4)
+        for ring in range(aantal_ringen):
+            aura_straal = hoofd_straal + 8 + basis_niveau * 3 + ring * (10 + min(extra_niveau, 6))
+            aura_kleur = (
+                min(255, 70 + extra_niveau * 10 + ring * 18),
+                20,
+                min(255, 80 + extra_niveau * 12 + ring * 24),
+            )
+            pygame.draw.circle(scherm, aura_kleur, hoofd_midden, aura_straal, 3 if ring == 0 else 2)
 
     # Hoofd en lijf.
     pygame.draw.circle(scherm, huid_kleur, hoofd_midden, hoofd_straal)
@@ -103,47 +117,81 @@ def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
     pygame.draw.rect(scherm, rand_kleur, lijf, 4, border_radius=18)
 
     # Armen.
-    arm_golf = math.sin(teller * 0.08) * (12 + visueel_niveau * 2)
+    arm_golf = math.sin(teller * 0.08) * (12 + basis_niveau * 2 + extra_niveau * 3)
     pygame.draw.line(scherm, rand_kleur, (x + 60, y + 130), (x + 10, y + 155 + arm_golf), 8)
     pygame.draw.line(scherm, rand_kleur, (x + 160, y + 130), (x + 210, y + 155 - arm_golf), 8)
 
     # Hoorns bij hogere niveaus.
-    if visueel_niveau >= 4:
-        pygame.draw.polygon(scherm, rand_kleur, [(x + 78, y + 10), (x + 96, y - 28), (x + 110, y + 18)])
-        pygame.draw.polygon(scherm, rand_kleur, [(x + 130, y + 18), (x + 144, y - 28), (x + 162, y + 10)])
+    if basis_niveau >= 4:
+        hoorn_hoogte = 28 + extra_niveau * 6
+        hoorn_buiten = 18 + extra_niveau * 2
+        pygame.draw.polygon(
+            scherm,
+            rand_kleur,
+            [(x + 78, y + 10), (x + 96 - hoorn_buiten, y - hoorn_hoogte), (x + 110, y + 18)],
+        )
+        pygame.draw.polygon(
+            scherm,
+            rand_kleur,
+            [(x + 130, y + 18), (x + 144 + hoorn_buiten, y - hoorn_hoogte), (x + 162, y + 10)],
+        )
 
     # Ogen - rood als het echt eng is.
     oog_kleur = ROZE if klik_animatie > 0 else ROOD
-    oog_straal = 10 + min(visueel_niveau, 3)
+    oog_straal = 10 + min(basis_niveau, 3) + min(extra_niveau, 5)
     pygame.draw.circle(scherm, oog_kleur, (x + 88, y + 65), oog_straal)
     pygame.draw.circle(scherm, oog_kleur, (x + 132, y + 65), oog_straal)
     pygame.draw.circle(scherm, WIT, (x + 91, y + 62), 3)
     pygame.draw.circle(scherm, WIT, (x + 135, y + 62), 3)
 
-    if visueel_niveau >= 2:
+    if basis_niveau >= 2:
         pygame.draw.line(scherm, ZWART, (x + 74, y + 48), (x + 97, y + 58), 3)
         pygame.draw.line(scherm, ZWART, (x + 123, y + 58), (x + 146, y + 48), 3)
 
-    if visueel_niveau >= 5:
-        pygame.draw.circle(scherm, oog_kleur, (x + 110, y + 34), 8)
+    if eng_niveau >= 5:
+        pygame.draw.circle(scherm, oog_kleur, (x + 110, y + 34), 8 + min(extra_niveau, 4))
         pygame.draw.circle(scherm, WIT, (x + 112, y + 31), 2)
 
+    if eng_niveau >= 8:
+        pygame.draw.circle(scherm, oog_kleur, (x + 68, y + 104), 5 + min(extra_niveau, 3))
+        pygame.draw.circle(scherm, oog_kleur, (x + 152, y + 104), 5 + min(extra_niveau, 3))
+
     # Mond.
-    if visueel_niveau <= 1:
+    if basis_niveau <= 1 and extra_niveau == 0:
         pygame.draw.arc(scherm, WIT, (x + 78, y + 88, 64, 28), 0, math.pi, 3)
     else:
-        pygame.draw.arc(scherm, WIT, (x + 72, y + 92, 76, 34), 0, math.pi, 3)
-        tanden = 3 + min(visueel_niveau, 4)
+        mond_breedte = 76 + min(extra_niveau * 6, 42)
+        mond_hoogte = 34 + min(extra_niveau * 2, 18)
+        mond_x = x + breedte // 2 - mond_breedte // 2
+        pygame.draw.arc(scherm, WIT, (mond_x, y + 92, mond_breedte, mond_hoogte), 0, math.pi, 3)
+        tanden = 3 + min(basis_niveau, 4) + min(extra_niveau, 4)
+        tand_afstand = mond_breedte / (tanden + 1)
         for tand in range(tanden):
-            tand_x = x + 78 + tand * 12
-            pygame.draw.polygon(scherm, WIT, [(tand_x, y + 103), (tand_x + 6, y + 118), (tand_x + 12, y + 103)])
+            tand_midden = int(mond_x + tand_afstand * (tand + 1))
+            tand_hoogte = 15 + min(extra_niveau * 2, 14)
+            pygame.draw.polygon(
+                scherm,
+                WIT,
+                [(tand_midden - 6, y + 103), (tand_midden, y + 103 + tand_hoogte), (tand_midden + 6, y + 103)],
+            )
 
-    if visueel_niveau >= 6:
-        for i in range(6):
-            vonk_x = x + 44 + i * 24
-            vonk_y = y + 18 + (i % 2) * 12
+    if eng_niveau >= 6:
+        vonken = 6 + extra_niveau * 2
+        for i in range(vonken):
+            hoek = teller * 0.03 + i * (math.tau / max(vonken, 1))
+            afstand = hoofd_straal + 32 + (i % 3) * 10 + min(extra_niveau * 3, 30)
+            vonk_x = hoofd_midden[0] + int(math.cos(hoek) * afstand)
+            vonk_y = hoofd_midden[1] + int(math.sin(hoek) * afstand * 0.7)
             pygame.draw.line(scherm, ROOD, (vonk_x, vonk_y), (vonk_x - 8, vonk_y - 14), 2)
             pygame.draw.line(scherm, ROOD, (vonk_x, vonk_y), (vonk_x + 8, vonk_y - 12), 2)
+
+    if extra_niveau > 0:
+        for i in range(extra_niveau):
+            kras_x = x + 72 + (i * 17) % 76
+            kras_y = y + 94 + (i * 23) % 112
+            kras_lengte = 10 + (i % 3) * 4
+            pygame.draw.line(scherm, ROOD, (kras_x, kras_y), (kras_x + kras_lengte, kras_y + 6), 2)
+            pygame.draw.line(scherm, ZWART, (kras_x + 4, kras_y - 2), (kras_x - 2, kras_y + 8), 2)
 
     # Kleine waarschuwingstekst op het poppetje.
     font = pygame.font.SysFont("Arial", 20, bold=True)
