@@ -106,7 +106,23 @@ def bereken_eng_niveau(punten):
     Dit groeit alleen door punten.
     Een resetbonus telt dus niet mee.
     """
-    return math.log10(max(0, punten) + 1) * 2.6
+    hele_punten = max(0, int(punten) // 10)
+    if hele_punten < 1:
+        return 0.0
+    return bereken_log10_groot_getal(hele_punten + 1) * 2.6
+
+
+def bereken_log10_groot_getal(getal):
+    """Bereken log10 veilig, ook voor supergrote hele getallen."""
+    if getal < 1:
+        return 0.0
+    if getal < 10**15:
+        return math.log10(getal)
+
+    tekst_getal = str(getal)
+    begin = tekst_getal[:16]
+    mantisse = float(f"{begin[0]}.{begin[1:]}")
+    return (len(tekst_getal) - 1) + math.log10(mantisse)
 
 
 def format_getal(getal):
@@ -133,6 +149,11 @@ def format_getal(getal):
         return f"-{tekst}" if negatief else tekst
 
     waarde = float(getal)
+    if math.isnan(waarde):
+        return "te groot"
+    if math.isinf(waarde):
+        return "oneindig"
+
     negatief = waarde < 0
     waarde = abs(waarde)
 
@@ -149,6 +170,23 @@ def format_getal(getal):
     return f"-{tekst}" if negatief else tekst
 
 
+def format_tienden(getal_tienden):
+    """Maak een getal met 1 decimaal, zonder zwevende komma-fouten."""
+    negatief = getal_tienden < 0
+    waarde = abs(int(getal_tienden))
+    hele = waarde // 10
+    decimaal = waarde % 10
+
+    if hele >= 1000:
+        tekst = format_getal(hele)
+    elif decimaal == 0:
+        tekst = str(hele)
+    else:
+        tekst = f"{hele}.{decimaal}"
+
+    return f"-{tekst}" if negatief else tekst
+
+
 def bereken_reset_bonus(punten):
     """Geef de resetbonus terug.
 
@@ -158,7 +196,7 @@ def bereken_reset_bonus(punten):
     - 50 t/m 99 punten = +0.1x
     - 100 t/m 149 punten = +0.2x
     """
-    return (int(punten) // 50) / 10
+    return (max(0, int(punten)) // 10) // 50
 
 
 def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
@@ -385,7 +423,7 @@ def maak_shop_vakken(paneel_rect):
 
 def teken_shop_knop(scherm, rect, upgrade, punten, font_titel, font_klein):
     """Teken een klein shop-vak."""
-    genoeg = punten >= upgrade["kosten"]
+    genoeg = punten >= upgrade["kosten"] * 10
     kleur = KNOP_KLEUR if genoeg else KNOP_UIT
     rand = KNOP_RAND if genoeg else PANEEL_RAND
 
@@ -403,7 +441,7 @@ def teken_shop_knop(scherm, rect, upgrade, punten, font_titel, font_klein):
 
 def kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina):
     """Ga naar de verste pagina waar je nog iets kunt kopen."""
-    while upgrades[-1]["kosten"] <= punten:
+    while upgrades[-1]["kosten"] * 10 <= punten:
         upgrades.append(maak_volgende_upgrade(upgrades))
 
     laag = 0
@@ -412,7 +450,7 @@ def kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina):
 
     while laag <= hoog:
         midden = (laag + hoog) // 2
-        if upgrades[midden]["kosten"] <= punten:
+        if upgrades[midden]["kosten"] * 10 <= punten:
             laatste_betaalbare_index = midden
             laag = midden + 1
         else:
@@ -451,14 +489,14 @@ def teken_reset_knop(scherm, rect, punten, multiplier, font, font_klein):
     pygame.draw.rect(scherm, knop_kleur, rect, border_radius=14)
     pygame.draw.rect(scherm, rand_kleur, rect, 3, border_radius=14)
 
-    bonus_tekst = font.render(f"Reset voor +{format_getal(reset_bonus)}x", True, TEKST_KLEUR)
+    bonus_tekst = font.render(f"Reset voor +{format_tienden(reset_bonus)}x", True, TEKST_KLEUR)
     scherm.blit(
         bonus_tekst,
         (rect.x + rect.width // 2 - bonus_tekst.get_width() // 2, rect.y + 10),
     )
 
     if reset_bonus > 0:
-        uitleg = font_klein.render(f"Nieuwe multiplier: x{format_getal(multiplier + reset_bonus)}", True, GEEL)
+        uitleg = font_klein.render(f"Nieuwe multiplier: x{format_tienden(multiplier + reset_bonus)}", True, GEEL)
     else:
         uitleg = font_klein.render("Spaar 50 punten voor +0.1x", True, SUBTEKST_KLEUR)
 
@@ -470,7 +508,7 @@ def teken_reset_knop(scherm, rect, punten, multiplier, font, font_klein):
 
 def reset_speltoestand():
     """Zet de spelwaarden terug voor een nieuwe ronde."""
-    return START_PUNTEN, START_KLIK_KRACHT, START_AUTO_SPOKEN, 0
+    return START_PUNTEN * 10, START_KLIK_KRACHT, START_AUTO_SPOKEN, 0
 
 
 def speel():
@@ -497,7 +535,7 @@ def speel():
 
     # Spelvariabelen.
     punten, klik_kracht, auto_spoken, shop_pagina = reset_speltoestand()
-    multiplier = 1.0
+    multiplier = 10
     klik_animatie = 0
     teller = 0
     upgrades = maak_upgrades()
@@ -552,8 +590,8 @@ def speel():
                     zichtbare_upgrades = pak_shop_upgrades(upgrades, shop_pagina, vakken_per_pagina)
 
                     for upgrade, rect in zip(zichtbare_upgrades, shop_vakken):
-                        if rect.collidepoint(muis_pos) and punten >= upgrade["kosten"]:
-                            punten -= upgrade["kosten"]
+                        if rect.collidepoint(muis_pos) and punten >= upgrade["kosten"] * 10:
+                            punten -= upgrade["kosten"] * 10
                             klik_kracht += upgrade["klik_bonus"]
                             auto_spoken += upgrade["auto_bonus"]
                             shop_pagina = kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina)
@@ -577,10 +615,10 @@ def speel():
         # Teken het informatiepaneel.
         teken_paneel(scherm, paneel_rect)
 
-        punten_tekst = font_groot.render(f"Punten: {format_getal(punten)}", True, TEKST_KLEUR)
-        klik_tekst = font_middel.render(f"Per klik: {format_getal(klik_kracht * multiplier)}", True, GEEL)
-        auto_tekst = font_middel.render(f"Per seconde: {format_getal(auto_spoken * multiplier)}", True, ROZE)
-        multiplier_tekst = font_klein.render(f"Multiplier: x{format_getal(multiplier)}", True, GEEL)
+        punten_tekst = font_groot.render(f"Punten: {format_tienden(punten)}", True, TEKST_KLEUR)
+        klik_tekst = font_middel.render(f"Per klik: {format_tienden(klik_kracht * multiplier)}", True, GEEL)
+        auto_tekst = font_middel.render(f"Per seconde: {format_tienden(auto_spoken * multiplier)}", True, ROZE)
+        multiplier_tekst = font_klein.render(f"Multiplier: x{format_tienden(multiplier)}", True, GEEL)
         eng_kracht = bereken_eng_niveau(punten)
         eng_tekst = font_klein.render(f"Eng kracht: {format_getal(eng_kracht)}", True, SUBTEKST_KLEUR)
         scherm.blit(punten_tekst, (paneel_rect.x + 20, 55))
