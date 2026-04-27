@@ -200,7 +200,7 @@ def bereken_reset_bonus(punten):
 
 
 def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
-    """Teken het enge poppetje waar je op moet klikken."""
+    """Teken een originele enge smiley waar je op moet klikken."""
     x = rect.x
     y = rect.y
     breedte = rect.width
@@ -210,265 +210,201 @@ def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
     extra_niveau = max(0.0, eng_kracht - 6)
     extra_tellen = max(0, int(extra_niveau))
 
-    # Bij een klik wordt het poppetje heel even groter.
-    extra = 10 if klik_animatie > 0 else 0
-    enge_golf = math.sin(teller * (0.05 + eng_kracht * 0.003)) * min(eng_kracht, 18)
-    lijf = pygame.Rect(
-        x + 55 - extra // 2,
-        int(y + 78 - extra // 2 - min(extra_niveau * 2, 22)),
-        110 + extra,
-        int(150 + extra + min(extra_niveau * 6, 72)),
-    )
-    hoofd_midden = (x + breedte // 2, y + 75 + int(enge_golf * 0.4))
-    hoofd_straal = int(52 + extra // 3 + min(extra_niveau * 1.5, 20))
-    huid_kleur = (
-        int(max(0, PANEEL_KLEUR[0] - basis_niveau * 3 - extra_niveau * 2)),
-        int(max(0, PANEEL_KLEUR[1] - basis_niveau * 2 - extra_niveau)),
-        int(max(0, PANEEL_KLEUR[2] - basis_niveau * 5 - extra_niveau * 4)),
+    # Bij een klik wordt de smiley heel even groter.
+    extra = 12 if klik_animatie > 0 else 0
+    golf = math.sin(teller * (0.05 + eng_kracht * 0.003)) * min(eng_kracht, 18)
+    gezicht_midden = (x + breedte // 2, y + 115 + int(golf * 0.5))
+    gezicht_straal = int(84 + extra // 2 + min(extra_niveau * 2, 24))
+    masker_kleur = (
+        int(max(120, 248 - basis_niveau * 8 - extra_tellen * 4)),
+        int(max(110, 244 - basis_niveau * 9 - extra_tellen * 5)),
+        int(max(120, 238 - basis_niveau * 10 - extra_tellen * 6)),
     )
     rand_kleur = (
-        int(min(255, PANEEL_RAND[0] + basis_niveau * 12 + extra_niveau * 6)),
-        int(max(0, PANEEL_RAND[1] - basis_niveau * 4 - extra_niveau * 2)),
-        int(min(255, PANEEL_RAND[2] + basis_niveau * 8 + extra_niveau * 4)),
-    )
-    masker_kleur = (
-        int(min(255, 205 + basis_niveau * 3)),
-        int(min(255, 210 + basis_niveau * 2)),
-        int(min(255, 220 + basis_niveau * 2)),
+        int(min(255, 100 + basis_niveau * 16 + extra_tellen * 6)),
+        int(max(0, 35 - extra_tellen * 2)),
+        int(min(255, 120 + basis_niveau * 14 + extra_tellen * 8)),
     )
     schaduw_kleur = (
-        int(min(255, 45 + basis_niveau * 8 + extra_niveau * 5)),
+        int(min(255, 55 + basis_niveau * 8 + extra_tellen * 6)),
         10,
-        int(min(255, 55 + basis_niveau * 10 + extra_niveau * 7)),
+        int(min(255, 70 + basis_niveau * 10 + extra_tellen * 8)),
+    )
+    mond_kleur = ROOD if eng_kracht >= 4 else WIT
+    oog_kleur = ROZE if klik_animatie > 0 else ROOD
+
+    # Schaduw onder de smiley.
+    pygame.draw.ellipse(
+        scherm,
+        ZWART,
+        (gezicht_midden[0] - 78, gezicht_midden[1] + gezicht_straal - 12, 156, 30),
     )
 
-    # Schaduw.
-    pygame.draw.ellipse(scherm, ZWART, (x + 35, y + 220, 160, 35))
-
-    # Een donkere mistwolk rond het hoofd maakt het veel spannender.
-    if eng_kracht >= 3:
-        for wolk in range(4):
-            wolk_hoek = teller * 0.015 + wolk * 1.6
-            wolk_x = hoofd_midden[0] + int(math.cos(wolk_hoek) * (65 + wolk * 10)) - 34
-            wolk_y = hoofd_midden[1] + int(math.sin(wolk_hoek) * (20 + wolk * 6)) - 18
-            pygame.draw.ellipse(scherm, schaduw_kleur, (wolk_x, wolk_y, 68, 36))
-
-    # Hoe enger het niveau, hoe sterker de aura rond het hoofd.
+    # Donkere mist rond de smiley.
     if eng_kracht >= 2:
-        aantal_ringen = 1 + int(math.sqrt(extra_tellen + 1))
-        for ring in range(aantal_ringen):
-            aura_straal = int(hoofd_straal + 8 + basis_niveau * 3 + ring * (10 + min(extra_niveau, 12)))
+        wolken = 3 + min(extra_tellen, 5)
+        for wolk in range(wolken):
+            wolk_hoek = teller * 0.015 + wolk * 1.5
+            wolk_x = gezicht_midden[0] + int(math.cos(wolk_hoek) * (gezicht_straal + 18)) - 34
+            wolk_y = gezicht_midden[1] + int(math.sin(wolk_hoek) * (30 + wolk * 4)) - 20
+            pygame.draw.ellipse(scherm, schaduw_kleur, (wolk_x, wolk_y, 68, 40))
+
+    # Aura-ringen maken de smiley nog dreigender.
+    if eng_kracht >= 3:
+        ringen = 1 + int(math.sqrt(extra_tellen + 1))
+        for ring in range(ringen):
+            aura_straal = int(gezicht_straal + 8 + ring * (12 + min(extra_niveau, 10)))
             aura_kleur = (
-                int(min(255, 70 + extra_niveau * 10 + ring * 18)),
+                int(min(255, 85 + ring * 20 + extra_tellen * 4)),
                 20,
-                int(min(255, 80 + extra_niveau * 12 + ring * 24)),
+                int(min(255, 110 + ring * 20 + extra_tellen * 6)),
             )
-            pygame.draw.circle(scherm, aura_kleur, hoofd_midden, aura_straal, 3 if ring == 0 else 2)
+            pygame.draw.circle(scherm, aura_kleur, gezicht_midden, aura_straal, 3 if ring == 0 else 2)
 
-    # Hoofd en lijf.
-    pygame.draw.circle(scherm, huid_kleur, hoofd_midden, hoofd_straal)
-    pygame.draw.circle(scherm, rand_kleur, hoofd_midden, hoofd_straal, 4)
-    pygame.draw.rect(scherm, huid_kleur, lijf, border_radius=18)
-    pygame.draw.rect(scherm, rand_kleur, lijf, 4, border_radius=18)
+    # Grote smiley-kop.
+    pygame.draw.circle(scherm, masker_kleur, gezicht_midden, gezicht_straal)
+    pygame.draw.circle(scherm, rand_kleur, gezicht_midden, gezicht_straal, 5)
+    pygame.draw.circle(scherm, ZWART, gezicht_midden, int(gezicht_straal * 0.78), 2)
 
+    # Kapotte masker-lijnen geven hem een enge, originele look.
     if eng_kracht >= 4:
-        # Een donker gezicht in het hoofd laat het lijken alsof er iets in woont.
-        schaduw_gezicht = pygame.Rect(x + 62, y + 24, 96, 118)
-        pygame.draw.ellipse(scherm, ZWART, schaduw_gezicht)
-        pygame.draw.ellipse(scherm, schaduw_kleur, schaduw_gezicht, 3)
+        scheuren = 3 + min(extra_tellen, 5)
+        for scheur in range(scheuren):
+            scheur_x = gezicht_midden[0] - 46 + (scheur * 19) % 92
+            scheur_y = gezicht_midden[1] - 54 + (scheur * 27) % 112
+            pygame.draw.line(scherm, ZWART, (scheur_x, scheur_y), (scheur_x - 8, scheur_y + 24), 3)
+            pygame.draw.line(scherm, schaduw_kleur, (scheur_x - 4, scheur_y + 12), (scheur_x + 9, scheur_y + 30), 2)
+
+    # Donkere schaduwhanden achter de smiley.
+    if eng_kracht >= 7:
+        handen = 4 + min(extra_tellen, 6)
+        for hand in range(handen):
+            hand_hoek = teller * 0.02 + hand * 1.1
+            basis_x = gezicht_midden[0] + int(math.cos(hand_hoek) * (gezicht_straal + 16))
+            basis_y = gezicht_midden[1] + int(math.sin(hand_hoek) * 60)
+            eind_x = basis_x + int(math.sin(hand_hoek * 1.6) * 16)
+            eind_y = basis_y - 34
+            pygame.draw.line(scherm, schaduw_kleur, (basis_x, basis_y), (eind_x, eind_y), 5)
+            for vinger in range(3):
+                pygame.draw.line(
+                    scherm,
+                    ZWART,
+                    (eind_x, eind_y),
+                    (eind_x + (vinger - 1) * 9, eind_y - 14 - vinger * 2),
+                    2,
+                )
+
+    # Ogen.
+    pupil_schok = int(math.sin(teller * 0.25) * min(2 + extra_niveau, 6))
+    linker_oog = pygame.Rect(gezicht_midden[0] - 52, gezicht_midden[1] - 42, 36, 48)
+    rechter_oog = pygame.Rect(gezicht_midden[0] + 16, gezicht_midden[1] - 42, 36, 48)
+    pygame.draw.ellipse(scherm, ZWART, linker_oog)
+    pygame.draw.ellipse(scherm, ZWART, rechter_oog)
+    pygame.draw.ellipse(scherm, oog_kleur, (linker_oog.x + 8, linker_oog.y + 8, 20, 28))
+    pygame.draw.ellipse(scherm, oog_kleur, (rechter_oog.x + 8, rechter_oog.y + 8, 20, 28))
+    pygame.draw.circle(scherm, ZWART, (linker_oog.centerx + pupil_schok, linker_oog.centery + 4), 8)
+    pygame.draw.circle(scherm, ZWART, (rechter_oog.centerx - pupil_schok, rechter_oog.centery + 4), 8)
+    pygame.draw.circle(scherm, WIT, (linker_oog.centerx + 4 + pupil_schok, linker_oog.centery - 4), 2)
+    pygame.draw.circle(scherm, WIT, (rechter_oog.centerx + 4 - pupil_schok, rechter_oog.centery - 4), 2)
+    pygame.draw.line(scherm, ZWART, (linker_oog.x - 4, linker_oog.y + 4), (linker_oog.right + 4, linker_oog.y + 18), 4)
+    pygame.draw.line(scherm, ZWART, (rechter_oog.x - 4, rechter_oog.y + 18), (rechter_oog.right + 4, rechter_oog.y + 4), 4)
 
     if eng_kracht >= 5:
-        # Een kapot masker maakt het hoofd veel griezeliger.
-        masker_rect = pygame.Rect(x + 66, y + 18, 88, 114)
-        pygame.draw.ellipse(scherm, masker_kleur, masker_rect)
-        pygame.draw.ellipse(scherm, schaduw_kleur, masker_rect, 2)
-        pygame.draw.line(scherm, ZWART, (x + 92, y + 24), (x + 78, y + 88), 3)
-        pygame.draw.line(scherm, ZWART, (x + 128, y + 20), (x + 144, y + 82), 3)
-        pygame.draw.line(scherm, schaduw_kleur, (x + 108, y + 32), (x + 116, y + 106), 2)
-
-    if eng_kracht >= 6:
-        # Een gescheurde kraag onder de nek geeft een nare poppen-look.
-        for plooi in range(6):
-            nek_x = x + 62 + plooi * 18
-            nek_y = y + 118 + (plooi % 2) * 4
-            pygame.draw.polygon(
-                scherm,
-                schaduw_kleur,
-                [(nek_x, nek_y), (nek_x + 10, nek_y + 26), (nek_x + 22, nek_y)],
-            )
-            pygame.draw.polygon(
-                scherm,
-                rand_kleur,
-                [(nek_x, nek_y), (nek_x + 10, nek_y + 18), (nek_x + 22, nek_y)],
-                2,
-            )
-
-    # Armen.
-    arm_golf = math.sin(teller * 0.08) * (12 + basis_niveau * 2 + extra_niveau * 3)
-    linker_hand = (x + 10, int(y + 155 + arm_golf))
-    rechter_hand = (x + 210, int(y + 155 - arm_golf))
-    pygame.draw.line(scherm, rand_kleur, (x + 60, y + 130), linker_hand, 8)
-    pygame.draw.line(scherm, rand_kleur, (x + 160, y + 130), rechter_hand, 8)
-
-    if eng_kracht >= 4:
-        # Lange klauwen helpen om het poppetje enger te maken.
-        for klauw in range(3):
-            pygame.draw.line(
-                scherm,
-                WIT,
-                linker_hand,
-                (linker_hand[0] - 12 - klauw * 5, linker_hand[1] - 8 + klauw * 6),
-                2,
-            )
-            pygame.draw.line(
-                scherm,
-                WIT,
-                rechter_hand,
-                (rechter_hand[0] + 12 + klauw * 5, rechter_hand[1] - 8 + klauw * 6),
-                2,
-            )
-
-    # Hoorns bij hogere niveaus.
-    if basis_niveau >= 4:
-        hoorn_hoogte = int(28 + extra_niveau * 6)
-        hoorn_buiten = int(18 + extra_niveau * 2)
-        pygame.draw.polygon(
-            scherm,
-            rand_kleur,
-            [(x + 78, y + 10), (x + 96 - hoorn_buiten, y - hoorn_hoogte), (x + 110, y + 18)],
-        )
-        pygame.draw.polygon(
-            scherm,
-            rand_kleur,
-            [(x + 130, y + 18), (x + 144 + hoorn_buiten, y - hoorn_hoogte), (x + 162, y + 10)],
-        )
-
-    # Ogen - rood als het echt eng is.
-    oog_kleur = ROZE if klik_animatie > 0 else ROOD
-    oog_straal = int(10 + min(basis_niveau, 3) + min(extra_niveau, 8))
-    pupil_schok = int(math.sin(teller * 0.23) * min(1 + extra_niveau, 5))
-    pygame.draw.circle(scherm, ZWART, (x + 88, y + 65), oog_straal + 6)
-    pygame.draw.circle(scherm, ZWART, (x + 132, y + 65), oog_straal + 6)
-    pygame.draw.circle(scherm, oog_kleur, (x + 88, y + 65), oog_straal)
-    pygame.draw.circle(scherm, oog_kleur, (x + 132, y + 65), oog_straal)
-    pygame.draw.circle(scherm, ZWART, (x + 88 + pupil_schok, y + 66), max(4, oog_straal - 4))
-    pygame.draw.circle(scherm, ZWART, (x + 132 - pupil_schok, y + 66), max(4, oog_straal - 4))
-    pygame.draw.circle(scherm, WIT, (x + 91 + pupil_schok, y + 62), 3)
-    pygame.draw.circle(scherm, WIT, (x + 135 - pupil_schok, y + 62), 3)
-
-    if basis_niveau >= 2:
-        pygame.draw.line(scherm, ZWART, (x + 74, y + 48), (x + 97, y + 58), 3)
-        pygame.draw.line(scherm, ZWART, (x + 123, y + 58), (x + 146, y + 48), 3)
-
-    if eng_kracht >= 4:
-        pygame.draw.line(scherm, schaduw_kleur, (x + 85, y + 78), (x + 78, y + 112), 3)
-        pygame.draw.line(scherm, schaduw_kleur, (x + 135, y + 78), (x + 142, y + 116), 3)
-        pygame.draw.line(scherm, ROOD, (x + 88, y + 78), (x + 80, y + 126), 2)
-        pygame.draw.line(scherm, ROOD, (x + 132, y + 78), (x + 140, y + 126), 2)
-
-    if eng_kracht >= 5:
-        pygame.draw.circle(scherm, oog_kleur, (x + 110, y + 34), int(8 + min(extra_niveau, 6)))
-        pygame.draw.circle(scherm, ZWART, (x + 110, y + 34), int(4 + min(extra_niveau, 3)))
-        pygame.draw.circle(scherm, WIT, (x + 112, y + 31), 2)
+        pygame.draw.circle(scherm, oog_kleur, (gezicht_midden[0], gezicht_midden[1] - 68), 9 + min(extra_tellen, 4))
+        pygame.draw.circle(scherm, ZWART, (gezicht_midden[0], gezicht_midden[1] - 68), 5 + min(extra_tellen, 2))
 
     if eng_kracht >= 8:
-        pygame.draw.circle(scherm, oog_kleur, (x + 68, y + 104), int(5 + min(extra_niveau, 5)))
-        pygame.draw.circle(scherm, oog_kleur, (x + 152, y + 104), int(5 + min(extra_niveau, 5)))
+        pygame.draw.line(scherm, ROOD, (linker_oog.centerx, linker_oog.bottom - 2), (linker_oog.centerx - 8, linker_oog.bottom + 26), 2)
+        pygame.draw.line(scherm, ROOD, (rechter_oog.centerx, rechter_oog.bottom - 2), (rechter_oog.centerx + 8, rechter_oog.bottom + 26), 2)
 
+    # Zwevende oogjes rond de smiley.
     if extra_tellen > 0:
         zwevende_ogen = 2 + int(math.sqrt(extra_tellen) * 3)
         for i in range(zwevende_ogen):
             hoek = teller * 0.02 + i * (math.tau / zwevende_ogen)
-            oog_afstand = hoofd_straal + 42 + (i % 4) * 12 + extra_niveau * 1.7
-            klein_oog_x = hoofd_midden[0] + int(math.cos(hoek) * oog_afstand)
-            klein_oog_y = hoofd_midden[1] + int(math.sin(hoek) * oog_afstand * 0.55)
+            oog_afstand = gezicht_straal + 36 + (i % 4) * 10 + extra_niveau * 1.5
+            klein_oog_x = gezicht_midden[0] + int(math.cos(hoek) * oog_afstand)
+            klein_oog_y = gezicht_midden[1] + int(math.sin(hoek) * oog_afstand * 0.65)
             klein_oog_straal = 3 + min(extra_tellen // 3, 6)
             pygame.draw.circle(scherm, ZWART, (klein_oog_x, klein_oog_y), klein_oog_straal + 2)
             pygame.draw.circle(scherm, oog_kleur, (klein_oog_x, klein_oog_y), klein_oog_straal)
             pygame.draw.circle(scherm, WIT, (klein_oog_x + 1, klein_oog_y - 1), 1)
 
-    # Mond.
-    if basis_niveau <= 1 and extra_niveau == 0:
-        pygame.draw.arc(scherm, WIT, (x + 78, y + 88, 64, 28), 0, math.pi, 3)
+    # Glimlach die steeds enger wordt.
+    mond_breedte = 112 + min(extra_tellen * 8, 58)
+    mond_hoogte = 60 + min(extra_tellen * 4, 26)
+    mond_rect = pygame.Rect(
+        gezicht_midden[0] - mond_breedte // 2,
+        gezicht_midden[1] + 6,
+        mond_breedte,
+        mond_hoogte,
+    )
+    if eng_kracht < 2:
+        pygame.draw.arc(scherm, WIT, mond_rect, 0.2, math.pi - 0.2, 4)
     else:
-        mond_breedte = 76 + min(extra_niveau * 6, 42)
-        mond_hoogte = 34 + min(extra_niveau * 2, 18)
-        mond_x = x + breedte // 2 - mond_breedte // 2
-        pygame.draw.ellipse(scherm, ZWART, (mond_x + 4, y + 95, mond_breedte - 8, mond_hoogte - 6))
-        pygame.draw.arc(scherm, WIT, (mond_x, y + 92, mond_breedte, mond_hoogte), 0, math.pi, 3)
-        pygame.draw.line(scherm, schaduw_kleur, (mond_x + 2, y + 110), (mond_x - 14, y + 100), 3)
-        pygame.draw.line(scherm, schaduw_kleur, (mond_x + mond_breedte - 2, y + 110), (mond_x + mond_breedte + 14, y + 100), 3)
-        tanden = int(3 + min(basis_niveau, 4) + min(extra_niveau, 4))
+        pygame.draw.arc(scherm, mond_kleur, mond_rect, 0.12, math.pi - 0.12, 5)
+        pygame.draw.arc(scherm, ZWART, (mond_rect.x, mond_rect.y + 8, mond_rect.width, mond_rect.height), 0.18, math.pi - 0.18, 3)
+        pygame.draw.line(scherm, schaduw_kleur, (mond_rect.x + 6, mond_rect.y + 32), (mond_rect.x - 18, mond_rect.y + 16), 3)
+        pygame.draw.line(
+            scherm,
+            schaduw_kleur,
+            (mond_rect.right - 6, mond_rect.y + 32),
+            (mond_rect.right + 18, mond_rect.y + 16),
+            3,
+        )
+
+        tanden = 4 + min(extra_tellen + int(basis_niveau), 8)
         tand_afstand = mond_breedte / (tanden + 1)
         for tand in range(tanden):
-            tand_midden = int(mond_x + tand_afstand * (tand + 1))
-            tand_hoogte = 15 + min(extra_niveau * 2, 14)
+            tand_midden = int(mond_rect.x + tand_afstand * (tand + 1))
+            tand_hoogte = 14 + min(extra_tellen * 2, 16)
             pygame.draw.polygon(
                 scherm,
                 WIT,
-                [(tand_midden - 6, y + 103), (tand_midden, y + 103 + tand_hoogte), (tand_midden + 6, y + 103)],
+                [
+                    (tand_midden - 6, mond_rect.y + 18),
+                    (tand_midden, mond_rect.y + 18 + tand_hoogte),
+                    (tand_midden + 6, mond_rect.y + 18),
+                ],
             )
-        if eng_kracht >= 6:
-            pygame.draw.line(scherm, schaduw_kleur, (x + 110, y + 92), (x + 110, y + 128), 3)
-            pygame.draw.arc(scherm, ROOD, (mond_x + 5, y + 103, mond_breedte - 10, mond_hoogte - 8), math.pi, math.tau, 2)
 
+        if eng_kracht >= 6:
+            pygame.draw.line(scherm, schaduw_kleur, (gezicht_midden[0], mond_rect.y + 2), (gezicht_midden[0], mond_rect.bottom - 2), 3)
+            pygame.draw.arc(
+                scherm,
+                ROOD,
+                (mond_rect.x + 6, mond_rect.y + 18, mond_rect.width - 12, mond_rect.height - 18),
+                math.pi,
+                math.tau,
+                2,
+            )
+
+    # Kleine vonken en krassen maken de smiley nog onrustiger.
     if eng_kracht >= 6:
         vonken = 6 + extra_tellen * 3
         for i in range(vonken):
             hoek = teller * 0.03 + i * (math.tau / max(vonken, 1))
-            afstand = hoofd_straal + 32 + (i % 3) * 10 + min(extra_niveau * 5, 70)
-            vonk_x = hoofd_midden[0] + int(math.cos(hoek) * afstand)
-            vonk_y = hoofd_midden[1] + int(math.sin(hoek) * afstand * 0.7)
+            afstand = gezicht_straal + 24 + (i % 3) * 10 + min(extra_niveau * 5, 70)
+            vonk_x = gezicht_midden[0] + int(math.cos(hoek) * afstand)
+            vonk_y = gezicht_midden[1] + int(math.sin(hoek) * afstand * 0.8)
             pygame.draw.line(scherm, ROOD, (vonk_x, vonk_y), (vonk_x - 8, vonk_y - 14), 2)
             pygame.draw.line(scherm, ROOD, (vonk_x, vonk_y), (vonk_x + 8, vonk_y - 12), 2)
 
     if extra_tellen > 0:
         for i in range(extra_tellen * 2):
-            kras_x = x + 72 + (i * 17) % 76
-            kras_y = y + 94 + (i * 23) % 112
+            kras_x = gezicht_midden[0] - 48 + (i * 17) % 96
+            kras_y = gezicht_midden[1] - 46 + (i * 23) % 120
             kras_lengte = 10 + (i % 3) * 4
             pygame.draw.line(scherm, ROOD, (kras_x, kras_y), (kras_x + kras_lengte, kras_y + 6), 2)
             pygame.draw.line(scherm, ZWART, (kras_x + 4, kras_y - 2), (kras_x - 2, kras_y + 8), 2)
 
-    if eng_kracht >= 7:
-        # Deze schaduw-slierten bewegen als rare armen om het lijf heen.
-        slierten = 4 + min(extra_tellen, 6)
-        for sliert in range(slierten):
-            start_x = x + 64 + sliert * 18
-            start_y = y + 138 + (sliert % 2) * 18
-            bocht = math.sin(teller * 0.05 + sliert) * (18 + extra_niveau * 2)
-            eind_x = int(start_x + bocht)
-            eind_y = int(start_y + 55 + sliert * 6)
-            pygame.draw.line(scherm, schaduw_kleur, (start_x, start_y), (eind_x, eind_y), 4)
-            pygame.draw.line(scherm, ZWART, (eind_x, eind_y), (eind_x - 8, eind_y + 12), 2)
-            pygame.draw.line(scherm, ZWART, (eind_x, eind_y), (eind_x + 8, eind_y + 10), 2)
-
-    if eng_kracht >= 9:
-        # Schaduwhanden achter het hoofd maken hem nog onrustiger.
-        for hand in range(5):
-            hand_hoek = teller * 0.02 + hand * 1.2
-            hand_basis_x = hoofd_midden[0] + int(math.cos(hand_hoek) * 92)
-            hand_basis_y = hoofd_midden[1] + int(math.sin(hand_hoek) * 48)
-            hand_eind_x = hand_basis_x + int(math.sin(hand_hoek * 1.4) * 18)
-            hand_eind_y = hand_basis_y - 30
-            pygame.draw.line(scherm, schaduw_kleur, (hand_basis_x, hand_basis_y), (hand_eind_x, hand_eind_y), 5)
-            for vinger in range(3):
-                vinger_x = hand_eind_x + (vinger - 1) * 8
-                pygame.draw.line(
-                    scherm,
-                    ZWART,
-                    (hand_eind_x, hand_eind_y),
-                    (vinger_x, hand_eind_y - 14 - vinger * 2),
-                    2,
-                )
-
-    # Kleine waarschuwingstekst op het poppetje.
+    # Kleine waarschuwingstekst op de smiley.
     font = pygame.font.SysFont("Arial", 20, bold=True)
     font_klein = pygame.font.SysFont("Arial", 16, bold=True)
     tekst = font.render("KLIK!", True, GEEL)
-    scherm.blit(tekst, (x + breedte // 2 - tekst.get_width() // 2, y + 245))
+    scherm.blit(tekst, (x + breedte // 2 - tekst.get_width() // 2, y + 250))
     niveau_tekst = font_klein.render(f"Eng fase {eng_fase}", True, ROZE)
-    scherm.blit(niveau_tekst, (x + breedte // 2 - niveau_tekst.get_width() // 2, y + 268))
+    scherm.blit(niveau_tekst, (x + breedte // 2 - niveau_tekst.get_width() // 2, y + 273))
 
 
 def maak_upgrades():
