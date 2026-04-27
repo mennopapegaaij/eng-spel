@@ -22,5 +22,5 @@ python main.py
 
 - Linkermuisknop op het poppetje = punten krijgen
 - Linkermuisknop op een upgrade = upgrade kopen
-- De shop gaat vanzelf naar de volgende bladzijde als je daar iets kunt betalen
+- De shop springt vanzelf naar de verste bladzijde waar je iets kunt betalen
 - Linkermuisknop op `Reset` = opnieuw beginnen voor een bonus-multiplier die groter wordt als je meer punten hebt

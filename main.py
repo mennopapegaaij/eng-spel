@@ -402,10 +402,29 @@ def teken_shop_knop(scherm, rect, upgrade, punten, font_titel, font_klein):
 
 
 def kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina):
-    """Ga naar de volgende pagina als je daar iets kunt kopen."""
-    volgende_upgrades = pak_shop_upgrades(upgrades, shop_pagina + 1, vakken_per_pagina)
-    if any(punten >= upgrade["kosten"] for upgrade in volgende_upgrades):
-        return shop_pagina + 1
+    """Ga naar de verste pagina waar je nog iets kunt kopen."""
+    while upgrades[-1]["kosten"] <= punten:
+        upgrades.append(maak_volgende_upgrade(upgrades))
+
+    laag = 0
+    hoog = len(upgrades) - 1
+    laatste_betaalbare_index = -1
+
+    while laag <= hoog:
+        midden = (laag + hoog) // 2
+        if upgrades[midden]["kosten"] <= punten:
+            laatste_betaalbare_index = midden
+            laag = midden + 1
+        else:
+            hoog = midden - 1
+
+    if laatste_betaalbare_index < 0:
+        return shop_pagina
+
+    betaalbare_pagina = laatste_betaalbare_index // vakken_per_pagina
+    if betaalbare_pagina > shop_pagina:
+        return betaalbare_pagina
+
     return shop_pagina
 
 
@@ -584,7 +603,7 @@ def speel():
             teken_shop_knop(scherm, rect, upgrade, punten, font_shop, font_shop_klein)
 
         # Kleine tip onderaan.
-        tip = font_klein.render("Tip: de shop is oneindig en springt zelf door!", True, SUBTEKST_KLEUR)
+        tip = font_klein.render("Tip: de shop springt naar de verste betaalbare bladzijde!", True, SUBTEKST_KLEUR)
         scherm.blit(tip, (38, 505))
 
         pygame.display.flip()
