@@ -119,10 +119,33 @@ def bereken_log10_groot_getal(getal):
     if getal < 10**15:
         return math.log10(getal)
 
-    tekst_getal = str(getal)
-    begin = tekst_getal[:16]
-    mantisse = float(f"{begin[0]}.{begin[1:]}")
-    return (len(tekst_getal) - 1) + math.log10(mantisse)
+    verschuiving = max(0, getal.bit_length() - 52)
+    begin_stuk = getal >> verschuiving
+    return math.log10(begin_stuk) + verschuiving * math.log10(2)
+
+
+def schat_grote_int(waarde, eerste_cijfers=3):
+    """Schat hoeveel cijfers een groot heel getal heeft en hoe het begint."""
+    if waarde == 0:
+        return 1, "0" * eerste_cijfers
+
+    if waarde < 10**15:
+        tekst = str(waarde)
+        return len(tekst), tekst[:eerste_cijfers].ljust(eerste_cijfers, "0")
+
+    log10_waarde = bereken_log10_groot_getal(waarde)
+    cijfers = int(log10_waarde) + 1
+    mantisse = 10 ** (log10_waarde - (cijfers - 1))
+    begin_getal = int(mantisse * (10 ** (eerste_cijfers - 1)))
+
+    minimum = 10 ** (eerste_cijfers - 1)
+    maximum = (10 ** eerste_cijfers) - 1
+    if begin_getal < minimum:
+        begin_getal = minimum
+    if begin_getal > maximum:
+        begin_getal = maximum
+
+    return cijfers, str(begin_getal).zfill(eerste_cijfers)
 
 
 def format_getal(getal):
@@ -131,21 +154,36 @@ def format_getal(getal):
 
     if isinstance(getal, int):
         negatief = getal < 0
-        tekst_getal = str(abs(getal))
+        waarde = abs(getal)
 
-        if len(tekst_getal) <= 3:
-            return f"-{tekst_getal}" if negatief else tekst_getal
+        if waarde < 1000:
+            tekst = str(waarde)
+            return f"-{tekst}" if negatief else tekst
 
-        groep = (len(tekst_getal) - 1) // 3
+        if waarde < 10**15:
+            tekst_getal = str(waarde)
+            groep = (len(tekst_getal) - 1) // 3
+            if groep < len(suffixen):
+                eerste_stuk = len(tekst_getal) - groep * 3
+                hoofd = tekst_getal[:eerste_stuk]
+                decimaal = tekst_getal[eerste_stuk : eerste_stuk + 1]
+                tekst = f"{hoofd}.{decimaal}{suffixen[groep]}" if decimaal and decimaal != "0" else f"{hoofd}{suffixen[groep]}"
+                return f"-{tekst}" if negatief else tekst
+
+            macht = len(tekst_getal) - 1
+            tekst = f"{tekst_getal[0]}.{tekst_getal[1:3]}e{macht}"
+            return f"-{tekst}" if negatief else tekst
+
+        cijfers, begin = schat_grote_int(waarde, 3)
+        groep = (cijfers - 1) // 3
         if groep < len(suffixen):
-            eerste_stuk = len(tekst_getal) - groep * 3
-            hoofd = tekst_getal[:eerste_stuk]
-            decimaal = tekst_getal[eerste_stuk : eerste_stuk + 1]
+            eerste_stuk = cijfers - groep * 3
+            hoofd = begin[:eerste_stuk]
+            decimaal = begin[eerste_stuk : eerste_stuk + 1]
             tekst = f"{hoofd}.{decimaal}{suffixen[groep]}" if decimaal and decimaal != "0" else f"{hoofd}{suffixen[groep]}"
             return f"-{tekst}" if negatief else tekst
 
-        macht = len(tekst_getal) - 1
-        tekst = f"{tekst_getal[0]}.{tekst_getal[1:3]}e{macht}"
+        tekst = f"{begin[0]}.{begin[1:3]}e{cijfers - 1}"
         return f"-{tekst}" if negatief else tekst
 
     waarde = float(getal)
