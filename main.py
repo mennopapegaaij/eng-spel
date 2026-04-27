@@ -511,6 +511,18 @@ def reset_speltoestand():
     return START_PUNTEN * 10, START_KLIK_KRACHT, START_AUTO_SPOKEN, 0
 
 
+def verwerk_auto_punten(punten, auto_spoken, multiplier, buffer_ms, delta_ms):
+    """Verdeel automatische punten netjes over de hele seconde."""
+    if auto_spoken <= 0 or delta_ms <= 0:
+        return punten, buffer_ms
+
+    buffer_ms += auto_spoken * multiplier * delta_ms
+    extra_punten = buffer_ms // 1000
+    buffer_ms %= 1000
+    punten += extra_punten
+    return punten, buffer_ms
+
+
 def speel():
     """Start en draai het clicker-spel."""
     pygame.init()
@@ -538,25 +550,25 @@ def speel():
     multiplier = 10
     klik_animatie = 0
     teller = 0
+    auto_punten_buffer = 0
     upgrades = maak_upgrades()
     vakken_per_pagina = len(shop_vakken)
 
-    # Dit event geeft elke seconde automatische punten.
-    auto_punt_event = pygame.USEREVENT + 1
-    pygame.time.set_timer(auto_punt_event, AUTO_EVENT_MS)
-
     while True:
+        delta_ms = klok.tick(FPS)
         teller += 1
+
+        punten_voor_auto = punten
+        punten, auto_punten_buffer = verwerk_auto_punten(
+            punten, auto_spoken, multiplier, auto_punten_buffer, delta_ms
+        )
+        if punten > punten_voor_auto:
+            shop_pagina = kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-
-            # Elke seconde krijg je punten van je spookhelpers.
-            if event.type == auto_punt_event and auto_spoken > 0:
-                punten += auto_spoken * multiplier
-                shop_pagina = kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina)
 
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 muis_pos = event.pos
@@ -576,6 +588,7 @@ def speel():
                     multiplier += reset_bonus
                     punten, klik_kracht, auto_spoken, shop_pagina = reset_speltoestand()
                     klik_animatie = 0
+                    auto_punten_buffer = 0
 
                 # Ga naar de vorige shop-pagina.
                 elif vorige_pagina_knop.collidepoint(muis_pos) and shop_pagina > 0:
@@ -645,7 +658,6 @@ def speel():
         scherm.blit(tip, (38, 505))
 
         pygame.display.flip()
-        klok.tick(FPS)
 
 
 if __name__ == "__main__":
