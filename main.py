@@ -370,14 +370,14 @@ def maak_volgende_upgrade(upgrades):
 
     if index % 2 == 0:
         vorige_bonus = upgrades[-2]["klik_bonus"]
-        bonus = int(vorige_bonus * 1.12 + 5000 + nummer * 15)
-        kosten = int(vorige_kosten * 1.13 + bonus * 14)
+        bonus = (vorige_bonus * 112) // 100 + 5000 + nummer * 15
+        kosten = (vorige_kosten * 113) // 100 + bonus * 14
         uitleg = f"+{format_getal(bonus)} klik"
         return {"titel": titel, "uitleg": uitleg, "kosten": kosten, "klik_bonus": bonus, "auto_bonus": 0}
 
     vorige_bonus = upgrades[-2]["auto_bonus"]
-    bonus = int(vorige_bonus * 1.12 + 3500 + nummer * 12)
-    kosten = int(vorige_kosten * 1.13 + bonus * 16)
+    bonus = (vorige_bonus * 112) // 100 + 3500 + nummer * 12
+    kosten = (vorige_kosten * 113) // 100 + bonus * 16
     uitleg = f"+{format_getal(bonus)} /s"
     return {"titel": titel, "uitleg": uitleg, "kosten": kosten, "klik_bonus": 0, "auto_bonus": bonus}
 
