@@ -231,6 +231,11 @@ def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
         int(max(0, PANEEL_RAND[1] - basis_niveau * 4 - extra_niveau * 2)),
         int(min(255, PANEEL_RAND[2] + basis_niveau * 8 + extra_niveau * 4)),
     )
+    masker_kleur = (
+        int(min(255, 205 + basis_niveau * 3)),
+        int(min(255, 210 + basis_niveau * 2)),
+        int(min(255, 220 + basis_niveau * 2)),
+    )
     schaduw_kleur = (
         int(min(255, 45 + basis_niveau * 8 + extra_niveau * 5)),
         10,
@@ -271,6 +276,32 @@ def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
         schaduw_gezicht = pygame.Rect(x + 62, y + 24, 96, 118)
         pygame.draw.ellipse(scherm, ZWART, schaduw_gezicht)
         pygame.draw.ellipse(scherm, schaduw_kleur, schaduw_gezicht, 3)
+
+    if eng_kracht >= 5:
+        # Een kapot masker maakt het hoofd veel griezeliger.
+        masker_rect = pygame.Rect(x + 66, y + 18, 88, 114)
+        pygame.draw.ellipse(scherm, masker_kleur, masker_rect)
+        pygame.draw.ellipse(scherm, schaduw_kleur, masker_rect, 2)
+        pygame.draw.line(scherm, ZWART, (x + 92, y + 24), (x + 78, y + 88), 3)
+        pygame.draw.line(scherm, ZWART, (x + 128, y + 20), (x + 144, y + 82), 3)
+        pygame.draw.line(scherm, schaduw_kleur, (x + 108, y + 32), (x + 116, y + 106), 2)
+
+    if eng_kracht >= 6:
+        # Een gescheurde kraag onder de nek geeft een nare poppen-look.
+        for plooi in range(6):
+            nek_x = x + 62 + plooi * 18
+            nek_y = y + 118 + (plooi % 2) * 4
+            pygame.draw.polygon(
+                scherm,
+                schaduw_kleur,
+                [(nek_x, nek_y), (nek_x + 10, nek_y + 26), (nek_x + 22, nek_y)],
+            )
+            pygame.draw.polygon(
+                scherm,
+                rand_kleur,
+                [(nek_x, nek_y), (nek_x + 10, nek_y + 18), (nek_x + 22, nek_y)],
+                2,
+            )
 
     # Armen.
     arm_golf = math.sin(teller * 0.08) * (12 + basis_niveau * 2 + extra_niveau * 3)
@@ -332,6 +363,8 @@ def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
     if eng_kracht >= 4:
         pygame.draw.line(scherm, schaduw_kleur, (x + 85, y + 78), (x + 78, y + 112), 3)
         pygame.draw.line(scherm, schaduw_kleur, (x + 135, y + 78), (x + 142, y + 116), 3)
+        pygame.draw.line(scherm, ROOD, (x + 88, y + 78), (x + 80, y + 126), 2)
+        pygame.draw.line(scherm, ROOD, (x + 132, y + 78), (x + 140, y + 126), 2)
 
     if eng_kracht >= 5:
         pygame.draw.circle(scherm, oog_kleur, (x + 110, y + 34), int(8 + min(extra_niveau, 6)))
@@ -363,6 +396,8 @@ def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
         mond_x = x + breedte // 2 - mond_breedte // 2
         pygame.draw.ellipse(scherm, ZWART, (mond_x + 4, y + 95, mond_breedte - 8, mond_hoogte - 6))
         pygame.draw.arc(scherm, WIT, (mond_x, y + 92, mond_breedte, mond_hoogte), 0, math.pi, 3)
+        pygame.draw.line(scherm, schaduw_kleur, (mond_x + 2, y + 110), (mond_x - 14, y + 100), 3)
+        pygame.draw.line(scherm, schaduw_kleur, (mond_x + mond_breedte - 2, y + 110), (mond_x + mond_breedte + 14, y + 100), 3)
         tanden = int(3 + min(basis_niveau, 4) + min(extra_niveau, 4))
         tand_afstand = mond_breedte / (tanden + 1)
         for tand in range(tanden):
@@ -407,6 +442,25 @@ def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
             pygame.draw.line(scherm, schaduw_kleur, (start_x, start_y), (eind_x, eind_y), 4)
             pygame.draw.line(scherm, ZWART, (eind_x, eind_y), (eind_x - 8, eind_y + 12), 2)
             pygame.draw.line(scherm, ZWART, (eind_x, eind_y), (eind_x + 8, eind_y + 10), 2)
+
+    if eng_kracht >= 9:
+        # Schaduwhanden achter het hoofd maken hem nog onrustiger.
+        for hand in range(5):
+            hand_hoek = teller * 0.02 + hand * 1.2
+            hand_basis_x = hoofd_midden[0] + int(math.cos(hand_hoek) * 92)
+            hand_basis_y = hoofd_midden[1] + int(math.sin(hand_hoek) * 48)
+            hand_eind_x = hand_basis_x + int(math.sin(hand_hoek * 1.4) * 18)
+            hand_eind_y = hand_basis_y - 30
+            pygame.draw.line(scherm, schaduw_kleur, (hand_basis_x, hand_basis_y), (hand_eind_x, hand_eind_y), 5)
+            for vinger in range(3):
+                vinger_x = hand_eind_x + (vinger - 1) * 8
+                pygame.draw.line(
+                    scherm,
+                    ZWART,
+                    (hand_eind_x, hand_eind_y),
+                    (vinger_x, hand_eind_y - 14 - vinger * 2),
+                    2,
+                )
 
     # Kleine waarschuwingstekst op het poppetje.
     font = pygame.font.SysFont("Arial", 20, bold=True)
