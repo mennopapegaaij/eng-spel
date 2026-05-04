@@ -11,6 +11,7 @@ Een simpel clicker-spel in Python met `pygame`.
 - Koop `Mega spook` voor nog meer automatische punten per seconde
 - Er zijn nu oneindig veel shop-dingen verdeeld over oneindig veel pagina's
 - Trek gratis kaarten bij multiplier-milestones zoals `x10`, `x100`, `x1000` en verder
+- Het deck heeft nu 48 random kaarten: nummers `1` t/m `12`, en elke kaart zit er `4` keer in
 
 ## Starten
 

@@ -80,15 +80,37 @@ SHOP_ACHTERVOEGSELS = ["Klauw", "Vlam", "Storm", "Tand", "Wolk", "Beet", "Kern",
 
 
 def maak_kaarten():
-    """Maak een klein deck met originele bonuskaarten."""
-    return [
-        {"titel": "Maskerkaart", "uitleg": "Multiplier x2", "soort": "keer", "waarde": 2, "gewicht": 34, "kleur": (78, 42, 98)},
-        {"titel": "Rode Maan", "uitleg": "Multiplier x3", "soort": "keer", "waarde": 3, "gewicht": 22, "kleur": (118, 34, 72)},
-        {"titel": "Donkere Lach", "uitleg": "Multiplier x5", "soort": "keer", "waarde": 5, "gewicht": 11, "kleur": (92, 28, 122)},
-        {"titel": "Tandkaart", "uitleg": "Multiplier x10", "soort": "keer", "waarde": 10, "gewicht": 4, "kleur": (150, 26, 70)},
-        {"titel": "Spookboost", "uitleg": "Multiplier +5.0x", "soort": "plus", "waarde": 50, "gewicht": 20, "kleur": (60, 80, 130)},
-        {"titel": "Nachtboost", "uitleg": "Multiplier +20.0x", "soort": "plus", "waarde": 200, "gewicht": 9, "kleur": (110, 60, 150)},
+    """Maak een deck met 48 nummerkaarten: 1 t/m 12, vier keer."""
+    kaart_kleuren = [
+        ("Maan", (78, 42, 98)),
+        ("Mist", (118, 34, 72)),
+        ("Spook", (92, 28, 122)),
+        ("Nacht", (60, 80, 130)),
     ]
+    kaarten = []
+
+    for reeks, kleur in kaart_kleuren:
+        for nummer in range(1, 13):
+            kaarten.append(
+                {
+                    "titel": f"Kaart {nummer}",
+                    "uitleg": f"Multiplier x{nummer}",
+                    "reeks": reeks,
+                    "nummer": nummer,
+                    "soort": "keer",
+                    "waarde": nummer,
+                    "kleur": kleur,
+                }
+            )
+
+    return kaarten
+
+
+def schud_kaarten(kaarten):
+    """Maak een geschudde stapel van het kaartdeck."""
+    stapel = [kaart.copy() for kaart in kaarten]
+    random.shuffle(stapel)
+    return stapel
 
 
 def teken_achtergrond(scherm, teller):
@@ -598,10 +620,11 @@ def format_kaart_mijlpaal(stap):
     return f"x1e{stap}"
 
 
-def trek_kaart(kaarten):
+def trek_kaart(kaarten, kaarten_stapel):
     """Trek 1 willekeurige kaart uit het deck."""
-    gewichten = [kaart["gewicht"] for kaart in kaarten]
-    return random.choices(kaarten, weights=gewichten, k=1)[0].copy()
+    if not kaarten_stapel:
+        kaarten_stapel.extend(schud_kaarten(kaarten))
+    return kaarten_stapel.pop()
 
 
 def pas_kaart_toe(kaart, multiplier):
@@ -652,7 +675,7 @@ def teken_reset_knop(scherm, rect, punten, multiplier, font, font_klein):
     )
 
 
-def teken_kaart_paneel(scherm, paneel_rect, knop_rect, multiplier, laatste_kaart, kaart_trekkingen, font, font_klein):
+def teken_kaart_paneel(scherm, paneel_rect, knop_rect, multiplier, laatste_kaart, kaart_trekkingen, kaarten_stapel, font, font_klein):
     """Teken het kaart-paneel."""
     kaart_beschikbaar = bereken_beschikbare_kaart_trekkingen(multiplier)
     kaarten_over = max(0, kaart_beschikbaar - kaart_trekkingen)
@@ -666,16 +689,18 @@ def teken_kaart_paneel(scherm, paneel_rect, knop_rect, multiplier, laatste_kaart
         status = font_klein.render(f"Vrije kaarten: {kaarten_over}", True, GEEL)
     else:
         status = font_klein.render(f"Volgende kaart bij {volgende_kaart}", True, SUBTEKST_KLEUR)
+    deck_tekst = font_klein.render(f"Deck: {len(kaarten_stapel)}/48", True, SUBTEKST_KLEUR)
     scherm.blit(titel, (paneel_rect.x + 16, paneel_rect.y + 12))
     scherm.blit(status, (paneel_rect.x + 18, paneel_rect.y + 42))
+    scherm.blit(deck_tekst, (paneel_rect.x + 18, paneel_rect.y + 58))
 
-    kaart_rect = pygame.Rect(paneel_rect.x + 16, paneel_rect.y + 72, paneel_rect.width - 32, 90)
+    kaart_rect = pygame.Rect(paneel_rect.x + 16, paneel_rect.y + 82, paneel_rect.width - 32, 90)
     if laatste_kaart:
         pygame.draw.rect(scherm, laatste_kaart["kleur"], kaart_rect, border_radius=16)
         pygame.draw.rect(scherm, KNOP_RAND, kaart_rect, 2, border_radius=16)
         kaart_titel = font.render(laatste_kaart["titel"], True, TEKST_KLEUR)
         kaart_uitleg = font_klein.render(laatste_kaart["uitleg"], True, WIT)
-        kaart_info = font_klein.render("Laatste kaart", True, GEEL)
+        kaart_info = font_klein.render(f"Laatste kaart - {laatste_kaart['reeks']}", True, GEEL)
         scherm.blit(kaart_info, (kaart_rect.x + 10, kaart_rect.y + 8))
         scherm.blit(kaart_titel, (kaart_rect.x + 10, kaart_rect.y + 30))
         scherm.blit(kaart_uitleg, (kaart_rect.x + 10, kaart_rect.y + 56))
@@ -683,7 +708,7 @@ def teken_kaart_paneel(scherm, paneel_rect, knop_rect, multiplier, laatste_kaart
         pygame.draw.rect(scherm, KNOP_UIT, kaart_rect, border_radius=16)
         pygame.draw.rect(scherm, PANEEL_RAND, kaart_rect, 2, border_radius=16)
         kaart_info = font.render("Nog geen kaart", True, TEKST_KLEUR)
-        kaart_uitleg = font_klein.render("Trek er een voor een mega bonus!", True, SUBTEKST_KLEUR)
+        kaart_uitleg = font_klein.render("48 random kaarten: 1 t/m 12, vier keer", True, SUBTEKST_KLEUR)
         scherm.blit(kaart_info, (kaart_rect.x + 10, kaart_rect.y + 22))
         scherm.blit(kaart_uitleg, (kaart_rect.x + 10, kaart_rect.y + 52))
 
@@ -750,6 +775,7 @@ def speel():
     teller = 0
     auto_punten_buffer = 0
     kaarten = maak_kaarten()
+    kaarten_stapel = schud_kaarten(kaarten)
     kaart_trekkingen = 0
     laatste_kaart = None
     upgrades = maak_upgrades()
@@ -797,7 +823,7 @@ def speel():
                     if kaart_trekkingen >= kaart_beschikbaar:
                         continue
 
-                    laatste_kaart = trek_kaart(kaarten)
+                    laatste_kaart = trek_kaart(kaarten, kaarten_stapel)
                     multiplier = pas_kaart_toe(laatste_kaart, multiplier)
                     kaart_trekkingen += 1
                     shop_pagina = kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina)
@@ -842,6 +868,7 @@ def speel():
             multiplier,
             laatste_kaart,
             kaart_trekkingen,
+            kaarten_stapel,
             font_klein,
             font_shop,
         )
