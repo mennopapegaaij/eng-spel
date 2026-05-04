@@ -583,10 +583,19 @@ def kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina):
     return shop_pagina
 
 
-def bereken_kaart_kosten(aantal_trekkingen):
-    """Laat kaartjes trekken steeds duurder worden."""
-    stap = aantal_trekkingen + 1
-    return 2500 * stap * stap
+def bereken_beschikbare_kaart_trekkingen(multiplier):
+    """Geef hoeveel gratis kaarttrekkingen je hebt vrijgespeeld."""
+    hele_multiplier = max(1, int(multiplier) // 10)
+    if hele_multiplier < 10:
+        return 0
+    return int(bereken_log10_groot_getal(hele_multiplier))
+
+
+def format_kaart_mijlpaal(stap):
+    """Maak de volgende multiplier-mijlpaal netjes leesbaar."""
+    if stap <= 3:
+        return f"x{10 ** stap}"
+    return f"x1e{stap}"
 
 
 def trek_kaart(kaarten):
@@ -643,13 +652,20 @@ def teken_reset_knop(scherm, rect, punten, multiplier, font, font_klein):
     )
 
 
-def teken_kaart_paneel(scherm, paneel_rect, knop_rect, punten, kaart_kosten, laatste_kaart, kaart_trekkingen, font, font_klein):
+def teken_kaart_paneel(scherm, paneel_rect, knop_rect, multiplier, laatste_kaart, kaart_trekkingen, font, font_klein):
     """Teken het kaart-paneel."""
+    kaart_beschikbaar = bereken_beschikbare_kaart_trekkingen(multiplier)
+    kaarten_over = max(0, kaart_beschikbaar - kaart_trekkingen)
+    volgende_kaart = format_kaart_mijlpaal(kaart_trekkingen + 1)
+
     pygame.draw.rect(scherm, PANEEL_KLEUR, paneel_rect, border_radius=20)
     pygame.draw.rect(scherm, PANEEL_RAND, paneel_rect, 4, border_radius=20)
 
     titel = font.render("Kaarten", True, TEKST_KLEUR)
-    status = font_klein.render(f"Getrokken: {kaart_trekkingen}", True, SUBTEKST_KLEUR)
+    if kaarten_over > 0:
+        status = font_klein.render(f"Vrije kaarten: {kaarten_over}", True, GEEL)
+    else:
+        status = font_klein.render(f"Volgende kaart bij {volgende_kaart}", True, SUBTEKST_KLEUR)
     scherm.blit(titel, (paneel_rect.x + 16, paneel_rect.y + 12))
     scherm.blit(status, (paneel_rect.x + 18, paneel_rect.y + 42))
 
@@ -671,14 +687,17 @@ def teken_kaart_paneel(scherm, paneel_rect, knop_rect, punten, kaart_kosten, laa
         scherm.blit(kaart_info, (kaart_rect.x + 10, kaart_rect.y + 22))
         scherm.blit(kaart_uitleg, (kaart_rect.x + 10, kaart_rect.y + 52))
 
-    genoeg = punten >= kaart_kosten * 10
+    genoeg = kaarten_over > 0
     knop_kleur = KNOP_KLEUR if genoeg else KNOP_UIT
     knop_rand = KNOP_RAND if genoeg else PANEEL_RAND
     pygame.draw.rect(scherm, knop_kleur, knop_rect, border_radius=14)
     pygame.draw.rect(scherm, knop_rand, knop_rect, 2, border_radius=14)
 
     knop_tekst = font.render("Trek kaart", True, TEKST_KLEUR)
-    kosten_tekst = font_klein.render(f"Kosten: {format_getal(kaart_kosten)} punten", True, GEEL)
+    if kaarten_over > 0:
+        kosten_tekst = font_klein.render("Gratis bij deze milestone!", True, GEEL)
+    else:
+        kosten_tekst = font_klein.render(f"Haal eerst {volgende_kaart}", True, GEEL)
     scherm.blit(knop_tekst, (knop_rect.x + knop_rect.width // 2 - knop_tekst.get_width() // 2, knop_rect.y + 6))
     scherm.blit(kosten_tekst, (knop_rect.x + knop_rect.width // 2 - kosten_tekst.get_width() // 2, knop_rect.y + 32))
 
@@ -732,7 +751,6 @@ def speel():
     auto_punten_buffer = 0
     kaarten = maak_kaarten()
     kaart_trekkingen = 0
-    kaart_kosten = bereken_kaart_kosten(kaart_trekkingen)
     laatste_kaart = None
     upgrades = maak_upgrades()
     vakken_per_pagina = len(shop_vakken)
@@ -775,14 +793,13 @@ def speel():
 
                 # Trek een kaart voor een grote bonus.
                 elif kaart_knop_rect.collidepoint(muis_pos):
-                    if punten < kaart_kosten * 10:
+                    kaart_beschikbaar = bereken_beschikbare_kaart_trekkingen(multiplier)
+                    if kaart_trekkingen >= kaart_beschikbaar:
                         continue
 
-                    punten -= kaart_kosten * 10
                     laatste_kaart = trek_kaart(kaarten)
                     multiplier = pas_kaart_toe(laatste_kaart, multiplier)
                     kaart_trekkingen += 1
-                    kaart_kosten = bereken_kaart_kosten(kaart_trekkingen)
                     shop_pagina = kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina)
 
                 # Ga naar de vorige shop-pagina.
@@ -822,8 +839,7 @@ def speel():
             scherm,
             kaart_paneel_rect,
             kaart_knop_rect,
-            punten,
-            kaart_kosten,
+            multiplier,
             laatste_kaart,
             kaart_trekkingen,
             font_klein,

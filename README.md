@@ -10,7 +10,7 @@ Een simpel clicker-spel in Python met `pygame`.
 - Koop `Mega klik` voor nog veel meer punten per klik
 - Koop `Mega spook` voor nog meer automatische punten per seconde
 - Er zijn nu oneindig veel shop-dingen verdeeld over oneindig veel pagina's
-- Trek kaarten voor grote multiplier-bonussen zoals `x2`, `x5` en soms zelfs `x10`
+- Trek gratis kaarten bij multiplier-milestones zoals `x10`, `x100`, `x1000` en verder
 
 ## Starten
 
@@ -23,6 +23,6 @@ python main.py
 
 - Linkermuisknop op de smiley = punten krijgen
 - Linkermuisknop op een upgrade = upgrade kopen
-- Linkermuisknop op `Trek kaart` = een willekeurige bonuskaart pakken
+- Linkermuisknop op `Trek kaart` = een gratis bonuskaart pakken als je een nieuwe multiplier-milestone hebt gehaald
 - De shop springt vanzelf naar de verste bladzijde waar je iets kunt betalen
 - Linkermuisknop op `Reset` = opnieuw beginnen; binnen 1 ronde wordt de bonus steeds duurder, maar na reset begint dat weer opnieuw
