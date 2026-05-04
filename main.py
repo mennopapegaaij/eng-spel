@@ -94,11 +94,9 @@ def maak_kaarten():
             kaarten.append(
                 {
                     "titel": f"Kaart {nummer}",
-                    "uitleg": f"Multiplier x{nummer}",
+                    "uitleg": beschrijf_kaart(nummer),
                     "reeks": reeks,
                     "nummer": nummer,
-                    "soort": "keer",
-                    "waarde": nummer,
                     "kleur": kleur,
                 }
             )
@@ -116,6 +114,25 @@ def schud_kaarten(kaarten):
 def maak_kaart_sleutel(kaart):
     """Maak een unieke sleutel voor 1 kaart."""
     return (kaart["reeks"], kaart["nummer"])
+
+
+def beschrijf_kaart(nummer):
+    """Geef de uitleg van een nummerkaart."""
+    alles_factoren = {1: 10, 2: 9, 3: 8, 4: 7, 5: 6, 6: 5, 7: 5, 8: 4, 11: 20}
+    if nummer in alles_factoren:
+        return f"Alles x{alles_factoren[nummer]}"
+    if nummer == 9:
+        return "Multiplier x11"
+    if nummer == 10:
+        return "Geld x30"
+    if nummer == 12:
+        return "Alle 4x kaart 12 = alles x100000"
+    return "Geen bonus"
+
+
+def tel_getrokken_kaarten_van_nummer(getrokken_sleutels, nummer):
+    """Tel hoeveel kaarten van een bepaald nummer al zijn getrokken."""
+    return sum(1 for _, kaart_nummer in getrokken_sleutels if kaart_nummer == nummer)
 
 
 def teken_achtergrond(scherm, teller):
@@ -632,11 +649,41 @@ def trek_kaart(kaarten_stapel):
     return kaarten_stapel.pop()
 
 
-def pas_kaart_toe(kaart, multiplier):
-    """Geef de kaartbonus aan de multiplier."""
-    if kaart["soort"] == "keer":
-        return multiplier * kaart["waarde"]
-    return multiplier + kaart["waarde"]
+def pas_kaart_toe(kaart, punten, klik_kracht, auto_spoken, multiplier, getrokken_sleutels):
+    """Geef de kaartbonus aan je spelwaarden."""
+    nummer = kaart["nummer"]
+    alles_factoren = {1: 10, 2: 9, 3: 8, 4: 7, 5: 6, 6: 5, 7: 5, 8: 4, 11: 20}
+
+    if nummer in alles_factoren:
+        factor = alles_factoren[nummer]
+        return (
+            punten * factor,
+            klik_kracht * factor,
+            auto_spoken * factor,
+            multiplier * factor,
+            f"Alles x{factor}!",
+        )
+
+    if nummer == 9:
+        return punten, klik_kracht, auto_spoken, multiplier * 11, "Multiplier x11!"
+
+    if nummer == 10:
+        return punten * 30, klik_kracht, auto_spoken, multiplier, "Geld x30!"
+
+    if nummer == 12:
+        twaalf_getrokken = tel_getrokken_kaarten_van_nummer(getrokken_sleutels, 12)
+        if twaalf_getrokken >= 4:
+            factor = 100000
+            return (
+                punten * factor,
+                klik_kracht * factor,
+                auto_spoken * factor,
+                multiplier * factor,
+                "Alle kaart 12 compleet: alles x100000!",
+            )
+        return punten, klik_kracht, auto_spoken, multiplier, f"Kaart 12: {twaalf_getrokken}/4 verzameld"
+
+    return punten, klik_kracht, auto_spoken, multiplier, "Geen bonus"
 
 
 def teken_pagina_knop(scherm, rect, tekst, actief, font):
@@ -687,6 +734,7 @@ def teken_kaart_paneel(
     overzicht_knop_rect,
     multiplier,
     laatste_kaart,
+    laatste_kaart_resultaat,
     kaart_trekkingen,
     kaarten_stapel,
     font,
@@ -718,10 +766,12 @@ def teken_kaart_paneel(
         pygame.draw.rect(scherm, KNOP_RAND, kaart_rect, 2, border_radius=16)
         kaart_titel = font.render(laatste_kaart["titel"], True, TEKST_KLEUR)
         kaart_uitleg = font_klein.render(laatste_kaart["uitleg"], True, WIT)
+        kaart_resultaat = font_klein.render(laatste_kaart_resultaat, True, GEEL)
         kaart_info = font_klein.render(f"Laatste kaart - {laatste_kaart['reeks']}", True, GEEL)
         scherm.blit(kaart_info, (kaart_rect.x + 10, kaart_rect.y + 8))
-        scherm.blit(kaart_titel, (kaart_rect.x + 10, kaart_rect.y + 30))
-        scherm.blit(kaart_uitleg, (kaart_rect.x + 10, kaart_rect.y + 56))
+        scherm.blit(kaart_titel, (kaart_rect.x + 10, kaart_rect.y + 26))
+        scherm.blit(kaart_uitleg, (kaart_rect.x + 10, kaart_rect.y + 48))
+        scherm.blit(kaart_resultaat, (kaart_rect.x + 10, kaart_rect.y + 68))
     else:
         pygame.draw.rect(scherm, KNOP_UIT, kaart_rect, border_radius=16)
         pygame.draw.rect(scherm, PANEEL_RAND, kaart_rect, 2, border_radius=16)
@@ -872,6 +922,7 @@ def speel():
     kaarten_stapel = schud_kaarten(kaarten)
     kaart_trekkingen = 0
     laatste_kaart = None
+    laatste_kaart_resultaat = ""
     getrokken_kaart_sleutels = set()
     kaart_overzicht_open = False
     upgrades = maak_upgrades()
@@ -932,7 +983,14 @@ def speel():
                         continue
 
                     getrokken_kaart_sleutels.add(maak_kaart_sleutel(laatste_kaart))
-                    multiplier = pas_kaart_toe(laatste_kaart, multiplier)
+                    punten, klik_kracht, auto_spoken, multiplier, laatste_kaart_resultaat = pas_kaart_toe(
+                        laatste_kaart,
+                        punten,
+                        klik_kracht,
+                        auto_spoken,
+                        multiplier,
+                        getrokken_kaart_sleutels,
+                    )
                     kaart_trekkingen += 1
                     shop_pagina = kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina)
 
@@ -980,6 +1038,7 @@ def speel():
             kaart_overzicht_knop_rect,
             multiplier,
             laatste_kaart,
+            laatste_kaart_resultaat,
             kaart_trekkingen,
             kaarten_stapel,
             font_klein,

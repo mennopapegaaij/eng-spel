@@ -13,6 +13,8 @@ Een simpel clicker-spel in Python met `pygame`.
 - Trek gratis kaarten bij multiplier-milestones zoals `x10`, `x100`, `x1000` en verder
 - Het deck heeft nu 48 random kaarten: nummers `1` t/m `12`, en elke kaart zit er `4` keer in
 - Met `Bekijk kaarten` kun je zien welke kaarten je al hebt en welke nog missen
+- Kaarten hebben nu vaste nummer-bonussen, bijvoorbeeld kaart `1 = alles x10`, kaart `9 = multiplier x11`, kaart `10 = geld x30`
+- Als je alle vier de kaarten met nummer `12` hebt, krijg je `alles x100000`
 
 ## Starten
 
