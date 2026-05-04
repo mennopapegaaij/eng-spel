@@ -15,6 +15,9 @@ Een simpel clicker-spel in Python met `pygame`.
 - Met `Bekijk kaarten` kun je zien welke kaarten je al hebt en welke nog missen
 - Kaarten hebben nu vaste nummer-bonussen, bijvoorbeeld kaart `1 = alles x10`, kaart `9 = multiplier x11`, kaart `10 = geld x30`
 - Als je alle vier de kaarten met nummer `12` hebt, krijg je `alles x100000`
+- Als je een normaal deck van 48 kaarten compleet maakt, krijg je 1 gouden kaart en begint het normale deck opnieuw
+- Gouden kaarten geven dezelfde soort nummer-bonussen, maar dan voor je `luckcoins`
+- `Luckcoins` beginnen bij `1`
 
 ## Starten
 
@@ -31,4 +34,4 @@ python main.py
 - Linkermuisknop op `Bekijk kaarten` = je hele kaartoverzicht openen
 - De shop springt vanzelf naar de verste bladzijde waar je iets kunt betalen
 - Linkermuisknop op `Reset` = opnieuw beginnen; binnen 1 ronde wordt de bonus steeds duurder, maar na reset begint dat weer opnieuw
-- Als alle 48 kaarten op zijn, kun je geen nieuwe kaarten meer trekken
+- Als het normale deck leeg is, krijg je eerst 1 gouden kaart en daarna begint het normale deck opnieuw

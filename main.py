@@ -1,4 +1,4 @@
-"""Eng Spel - een simpel clicker-spel met een eng poppetje."""
+"""Eng Spel - een simpel clicker-spel met een enge smiley."""
 
 import math
 import random
@@ -79,24 +79,33 @@ SHOP_VOORVOEGSELS = ["Mist", "Spook", "Schim", "Graf", "Nacht", "Donder", "Helle
 SHOP_ACHTERVOEGSELS = ["Klauw", "Vlam", "Storm", "Tand", "Wolk", "Beet", "Kern", "Poot", "Golf", "Ster"]
 
 
-def maak_kaarten():
+def maak_kaarten(goud=False):
     """Maak een deck met 48 nummerkaarten: 1 t/m 12, vier keer."""
-    kaart_kleuren = [
-        ("Maan", (78, 42, 98)),
-        ("Mist", (118, 34, 72)),
-        ("Spook", (92, 28, 122)),
-        ("Nacht", (60, 80, 130)),
-    ]
+    if goud:
+        kaart_kleuren = [
+            ("Goudmaan", (188, 146, 44)),
+            ("Goudmist", (205, 160, 52)),
+            ("Goudspook", (222, 176, 58)),
+            ("Goudnacht", (238, 194, 70)),
+        ]
+    else:
+        kaart_kleuren = [
+            ("Maan", (78, 42, 98)),
+            ("Mist", (118, 34, 72)),
+            ("Spook", (92, 28, 122)),
+            ("Nacht", (60, 80, 130)),
+        ]
     kaarten = []
 
     for reeks, kleur in kaart_kleuren:
         for nummer in range(1, 13):
             kaarten.append(
                 {
-                    "titel": f"Kaart {nummer}",
-                    "uitleg": beschrijf_kaart(nummer),
+                    "titel": f"{'Gouden ' if goud else ''}kaart {nummer}",
+                    "uitleg": beschrijf_kaart(nummer, goud),
                     "reeks": reeks,
                     "nummer": nummer,
+                    "goud": goud,
                     "kleur": kleur,
                 }
             )
@@ -116,17 +125,18 @@ def maak_kaart_sleutel(kaart):
     return (kaart["reeks"], kaart["nummer"])
 
 
-def beschrijf_kaart(nummer):
+def beschrijf_kaart(nummer, goud=False):
     """Geef de uitleg van een nummerkaart."""
     alles_factoren = {1: 10, 2: 9, 3: 8, 4: 7, 5: 6, 6: 5, 7: 5, 8: 4, 11: 20}
+    doel = "Luckcoins" if goud else "Alles"
     if nummer in alles_factoren:
-        return f"Alles x{alles_factoren[nummer]}"
+        return f"{doel} x{alles_factoren[nummer]}"
     if nummer == 9:
-        return "Multiplier x11"
+        return "Luckcoins x11" if goud else "Multiplier x11"
     if nummer == 10:
-        return "Geld x30"
+        return "Luckcoins x30" if goud else "Geld x30"
     if nummer == 12:
-        return "Alle 4x kaart 12 = alles x100000"
+        return "Alle 4x kaart 12 = luckcoins x100000" if goud else "Alle 4x kaart 12 = alles x100000"
     return "Geen bonus"
 
 
@@ -649,10 +659,31 @@ def trek_kaart(kaarten_stapel):
     return kaarten_stapel.pop()
 
 
-def pas_kaart_toe(kaart, punten, klik_kracht, auto_spoken, multiplier, getrokken_sleutels):
+def pas_kaart_toe(kaart, punten, klik_kracht, auto_spoken, multiplier, luckcoins, getrokken_sleutels):
     """Geef de kaartbonus aan je spelwaarden."""
     nummer = kaart["nummer"]
     alles_factoren = {1: 10, 2: 9, 3: 8, 4: 7, 5: 6, 6: 5, 7: 5, 8: 4, 11: 20}
+    is_gouden_kaart = kaart.get("goud", False)
+
+    if is_gouden_kaart:
+        if nummer in alles_factoren:
+            factor = alles_factoren[nummer]
+            return punten, klik_kracht, auto_spoken, multiplier, luckcoins * factor, f"Luckcoins x{factor}!"
+
+        if nummer == 9:
+            return punten, klik_kracht, auto_spoken, multiplier, luckcoins * 11, "Luckcoins x11!"
+
+        if nummer == 10:
+            return punten, klik_kracht, auto_spoken, multiplier, luckcoins * 30, "Luckcoins x30!"
+
+        if nummer == 12:
+            twaalf_getrokken = tel_getrokken_kaarten_van_nummer(getrokken_sleutels, 12)
+            if twaalf_getrokken >= 4:
+                factor = 100000
+                return punten, klik_kracht, auto_spoken, multiplier, luckcoins * factor, "Alle gouden kaart 12 compleet: luckcoins x100000!"
+            return punten, klik_kracht, auto_spoken, multiplier, luckcoins, f"Gouden kaart 12: {twaalf_getrokken}/4 verzameld"
+
+        return punten, klik_kracht, auto_spoken, multiplier, luckcoins, "Geen bonus"
 
     if nummer in alles_factoren:
         factor = alles_factoren[nummer]
@@ -661,14 +692,15 @@ def pas_kaart_toe(kaart, punten, klik_kracht, auto_spoken, multiplier, getrokken
             klik_kracht * factor,
             auto_spoken * factor,
             multiplier * factor,
+            luckcoins,
             f"Alles x{factor}!",
         )
 
     if nummer == 9:
-        return punten, klik_kracht, auto_spoken, multiplier * 11, "Multiplier x11!"
+        return punten, klik_kracht, auto_spoken, multiplier * 11, luckcoins, "Multiplier x11!"
 
     if nummer == 10:
-        return punten * 30, klik_kracht, auto_spoken, multiplier, "Geld x30!"
+        return punten * 30, klik_kracht, auto_spoken, multiplier, luckcoins, "Geld x30!"
 
     if nummer == 12:
         twaalf_getrokken = tel_getrokken_kaarten_van_nummer(getrokken_sleutels, 12)
@@ -679,11 +711,12 @@ def pas_kaart_toe(kaart, punten, klik_kracht, auto_spoken, multiplier, getrokken
                 klik_kracht * factor,
                 auto_spoken * factor,
                 multiplier * factor,
+                luckcoins,
                 "Alle kaart 12 compleet: alles x100000!",
             )
-        return punten, klik_kracht, auto_spoken, multiplier, f"Kaart 12: {twaalf_getrokken}/4 verzameld"
+        return punten, klik_kracht, auto_spoken, multiplier, luckcoins, f"Kaart 12: {twaalf_getrokken}/4 verzameld"
 
-    return punten, klik_kracht, auto_spoken, multiplier, "Geen bonus"
+    return punten, klik_kracht, auto_spoken, multiplier, luckcoins, "Geen bonus"
 
 
 def teken_pagina_knop(scherm, rect, tekst, actief, font):
@@ -733,10 +766,15 @@ def teken_kaart_paneel(
     knop_rect,
     overzicht_knop_rect,
     multiplier,
+    luckcoins,
     laatste_kaart,
     laatste_kaart_resultaat,
+    laatste_gouden_kaart,
+    laatste_gouden_kaart_resultaat,
     kaart_trekkingen,
     kaarten_stapel,
+    gouden_kaarten_stapel,
+    getrokken_gouden_sleutels,
     font,
     font_klein,
 ):
@@ -755,10 +793,12 @@ def teken_kaart_paneel(
         status = font_klein.render(f"Vrije kaarten: {kaarten_over}", True, GEEL)
     else:
         status = font_klein.render(f"Volgende kaart bij {volgende_kaart}", True, SUBTEKST_KLEUR)
-    deck_tekst = font_klein.render(f"Deck: {len(kaarten_stapel)}/48", True, SUBTEKST_KLEUR)
+    deck_tekst = font_klein.render(f"Normaal deck: {len(kaarten_stapel)}/48", True, SUBTEKST_KLEUR)
+    goud_tekst = font_klein.render(f"Goud deck: {len(gouden_kaarten_stapel)}/48", True, GEEL)
     scherm.blit(titel, (paneel_rect.x + 16, paneel_rect.y + 12))
     scherm.blit(status, (paneel_rect.x + 18, paneel_rect.y + 42))
     scherm.blit(deck_tekst, (paneel_rect.x + 18, paneel_rect.y + 58))
+    scherm.blit(goud_tekst, (paneel_rect.x + 120, paneel_rect.y + 58))
 
     kaart_rect = pygame.Rect(paneel_rect.x + 16, paneel_rect.y + 82, paneel_rect.width - 32, 90)
     if laatste_kaart:
@@ -807,9 +847,77 @@ def teken_kaart_paneel(
         ),
     )
 
+    luckcoins_tekst = font_klein.render(f"Luckcoins: {format_getal(luckcoins)}", True, GEEL)
+    scherm.blit(luckcoins_tekst, (paneel_rect.x + 18, paneel_rect.y + 282))
 
-def teken_kaart_overzicht(scherm, overlay_rect, sluit_rect, kaarten, getrokken_sleutels, font, font_klein):
-    """Teken een overzicht van getrokken en missende kaarten."""
+    if laatste_gouden_kaart:
+        goud_resultaat = font_klein.render(f"Goud: {laatste_gouden_kaart['titel']}", True, KNOP_RAND)
+        goud_uitleg = font_klein.render(laatste_gouden_kaart_resultaat, True, TEKST_KLEUR)
+    else:
+        goud_resultaat = font_klein.render("Gouden kaart: nog geen", True, KNOP_RAND)
+        goud_uitleg = font_klein.render("Voltooi een normaal deck voor 1 gouden kaart.", True, SUBTEKST_KLEUR)
+    scherm.blit(goud_resultaat, (paneel_rect.x + 18, paneel_rect.y + 300))
+    scherm.blit(goud_uitleg, (paneel_rect.x + 18, paneel_rect.y + 316))
+
+
+def teken_deck_grid(scherm, deck_rect, titel, kaarten, getrokken_sleutels, font, font_klein):
+    """Teken 1 kaartdeck als rooster."""
+    pygame.draw.rect(scherm, KNOP_UIT, deck_rect, border_radius=18)
+    pygame.draw.rect(scherm, PANEEL_RAND, deck_rect, 2, border_radius=18)
+
+    getrokken = len(getrokken_sleutels)
+    mist = len(kaarten) - getrokken
+    titel_tekst = font.render(titel, True, TEKST_KLEUR)
+    status = font_klein.render(f"Getrokken: {getrokken}/48   Nog: {mist}", True, GEEL)
+    scherm.blit(titel_tekst, (deck_rect.x + 16, deck_rect.y + 12))
+    scherm.blit(status, (deck_rect.x + 16, deck_rect.y + 40))
+
+    start_x = deck_rect.x + 64
+    start_y = deck_rect.y + 78
+    cel_breedte = 24
+    cel_hoogte = 40
+    series = [kaart["reeks"] for kaart in kaarten[::12]]
+
+    for rij, reeks in enumerate(series):
+        rij_y = start_y + rij * 52
+        reeks_kaart = next(kaart for kaart in kaarten if kaart["reeks"] == reeks)
+        reeks_tekst = font_klein.render(reeks, True, reeks_kaart["kleur"])
+        scherm.blit(reeks_tekst, (deck_rect.x + 12, rij_y + 10))
+
+        for nummer in range(1, 13):
+            kaart = next(kaart for kaart in kaarten if kaart["reeks"] == reeks and kaart["nummer"] == nummer)
+            kaart_rect = pygame.Rect(start_x + (nummer - 1) * cel_breedte, rij_y, 20, cel_hoogte)
+            sleutel = maak_kaart_sleutel(kaart)
+            getrokken_kleur = kaart["kleur"] if sleutel in getrokken_sleutels else KNOP_UIT
+            rand_kleur = KNOP_RAND if sleutel in getrokken_sleutels else PANEEL_RAND
+            pygame.draw.rect(scherm, getrokken_kleur, kaart_rect, border_radius=6)
+            pygame.draw.rect(scherm, rand_kleur, kaart_rect, 2, border_radius=6)
+
+            nummer_tekst = font_klein.render(str(nummer), True, TEKST_KLEUR)
+            scherm.blit(
+                nummer_tekst,
+                (kaart_rect.x + kaart_rect.width // 2 - nummer_tekst.get_width() // 2, kaart_rect.y + 4),
+            )
+
+            status_tekst = font_klein.render("JA" if sleutel in getrokken_sleutels else ".", True, GEEL if sleutel in getrokken_sleutels else SUBTEKST_KLEUR)
+            scherm.blit(
+                status_tekst,
+                (kaart_rect.x + kaart_rect.width // 2 - status_tekst.get_width() // 2, kaart_rect.y + 20),
+            )
+
+
+def teken_kaart_overzicht(
+    scherm,
+    overlay_rect,
+    sluit_rect,
+    kaarten,
+    getrokken_sleutels,
+    gouden_kaarten,
+    getrokken_gouden_sleutels,
+    font,
+    font_klein,
+):
+    """Teken een overzicht van normale en gouden kaarten."""
     dim = pygame.Surface((SCHERM_BREEDTE, SCHERM_HOOGTE), pygame.SRCALPHA)
     dim.fill((0, 0, 0, 160))
     scherm.blit(dim, (0, 0))
@@ -818,13 +926,9 @@ def teken_kaart_overzicht(scherm, overlay_rect, sluit_rect, kaarten, getrokken_s
     pygame.draw.rect(scherm, PANEEL_RAND, overlay_rect, 4, border_radius=24)
 
     titel = font.render("Kaartoverzicht", True, TEKST_KLEUR)
-    getrokken = len(getrokken_sleutels)
-    mist = len(kaarten) - getrokken
-    status = font_klein.render(f"Getrokken: {getrokken}/48   Nog te gaan: {mist}", True, GEEL)
-    uitleg = font_klein.render("Licht = getrokken, donker = nog niet.", True, SUBTEKST_KLEUR)
+    uitleg = font_klein.render("Links normaal, rechts goud. Licht = getrokken.", True, SUBTEKST_KLEUR)
     scherm.blit(titel, (overlay_rect.x + 20, overlay_rect.y + 16))
-    scherm.blit(status, (overlay_rect.x + 22, overlay_rect.y + 52))
-    scherm.blit(uitleg, (overlay_rect.x + 22, overlay_rect.y + 76))
+    scherm.blit(uitleg, (overlay_rect.x + 22, overlay_rect.y + 52))
 
     pygame.draw.rect(scherm, KNOP_KLEUR, sluit_rect, border_radius=10)
     pygame.draw.rect(scherm, KNOP_RAND, sluit_rect, 2, border_radius=10)
@@ -833,39 +937,10 @@ def teken_kaart_overzicht(scherm, overlay_rect, sluit_rect, kaarten, getrokken_s
         sluit_tekst,
         (sluit_rect.x + sluit_rect.width // 2 - sluit_tekst.get_width() // 2, sluit_rect.y + 6),
     )
-
-    start_x = overlay_rect.x + 98
-    start_y = overlay_rect.y + 122
-    cel_breedte = 44
-    cel_hoogte = 50
-    series = ["Maan", "Mist", "Spook", "Nacht"]
-
-    for rij, reeks in enumerate(series):
-        rij_y = start_y + rij * 72
-        reeks_kaart = next(kaart for kaart in kaarten if kaart["reeks"] == reeks)
-        reeks_tekst = font_klein.render(reeks, True, reeks_kaart["kleur"])
-        scherm.blit(reeks_tekst, (overlay_rect.x + 20, rij_y + 14))
-
-        for nummer in range(1, 13):
-            kaart = next(kaart for kaart in kaarten if kaart["reeks"] == reeks and kaart["nummer"] == nummer)
-            kaart_rect = pygame.Rect(start_x + (nummer - 1) * cel_breedte, rij_y, 36, cel_hoogte)
-            sleutel = maak_kaart_sleutel(kaart)
-            getrokken_kleur = kaart["kleur"] if sleutel in getrokken_sleutels else KNOP_UIT
-            rand_kleur = KNOP_RAND if sleutel in getrokken_sleutels else PANEEL_RAND
-            pygame.draw.rect(scherm, getrokken_kleur, kaart_rect, border_radius=10)
-            pygame.draw.rect(scherm, rand_kleur, kaart_rect, 2, border_radius=10)
-
-            nummer_tekst = font_klein.render(str(nummer), True, TEKST_KLEUR)
-            scherm.blit(
-                nummer_tekst,
-                (kaart_rect.x + kaart_rect.width // 2 - nummer_tekst.get_width() // 2, kaart_rect.y + 8),
-            )
-
-            status_tekst = font_klein.render("JA" if sleutel in getrokken_sleutels else "...", True, GEEL if sleutel in getrokken_sleutels else SUBTEKST_KLEUR)
-            scherm.blit(
-                status_tekst,
-                (kaart_rect.x + kaart_rect.width // 2 - status_tekst.get_width() // 2, kaart_rect.y + 26),
-            )
+    normaal_rect = pygame.Rect(overlay_rect.x + 16, overlay_rect.y + 88, 386, 330)
+    goud_rect = pygame.Rect(overlay_rect.x + 418, overlay_rect.y + 88, 386, 330)
+    teken_deck_grid(scherm, normaal_rect, "Normaal deck", kaarten, getrokken_sleutels, font, font_klein)
+    teken_deck_grid(scherm, goud_rect, "Goud deck", gouden_kaarten, getrokken_gouden_sleutels, font, font_klein)
 
 
 def reset_speltoestand():
@@ -901,7 +976,7 @@ def speel():
 
     # Rechthoeken voor het poppetje en de winkel.
     poppetje_rect = pygame.Rect(120, 110, 220, 260)
-    kaart_paneel_rect = pygame.Rect(360, 110, 220, 288)
+    kaart_paneel_rect = pygame.Rect(360, 110, 220, 342)
     kaart_knop_rect = pygame.Rect(kaart_paneel_rect.x + 20, kaart_paneel_rect.y + 182, kaart_paneel_rect.width - 40, 58)
     kaart_overzicht_knop_rect = pygame.Rect(kaart_paneel_rect.x + 20, kaart_paneel_rect.y + 246, kaart_paneel_rect.width - 40, 30)
     kaart_overlay_rect = pygame.Rect(70, 36, 820, 468)
@@ -915,15 +990,21 @@ def speel():
     # Spelvariabelen.
     punten, klik_kracht, auto_spoken, shop_pagina = reset_speltoestand()
     multiplier = 10
+    luckcoins = 1
     klik_animatie = 0
     teller = 0
     auto_punten_buffer = 0
     kaarten = maak_kaarten()
     kaarten_stapel = schud_kaarten(kaarten)
+    gouden_kaarten = maak_kaarten(goud=True)
+    gouden_kaarten_stapel = schud_kaarten(gouden_kaarten)
     kaart_trekkingen = 0
     laatste_kaart = None
     laatste_kaart_resultaat = ""
+    laatste_gouden_kaart = None
+    laatste_gouden_kaart_resultaat = ""
     getrokken_kaart_sleutels = set()
+    getrokken_gouden_kaart_sleutels = set()
     kaart_overzicht_open = False
     upgrades = maak_upgrades()
     vakken_per_pagina = len(shop_vakken)
@@ -952,7 +1033,7 @@ def speel():
                         kaart_overzicht_open = False
                     continue
 
-                # Klik op het poppetje voor punten.
+                # Klik op de smiley voor punten.
                 if poppetje_rect.collidepoint(muis_pos):
                     punten += klik_kracht * multiplier
                     klik_animatie = 10
@@ -983,15 +1064,36 @@ def speel():
                         continue
 
                     getrokken_kaart_sleutels.add(maak_kaart_sleutel(laatste_kaart))
-                    punten, klik_kracht, auto_spoken, multiplier, laatste_kaart_resultaat = pas_kaart_toe(
+                    punten, klik_kracht, auto_spoken, multiplier, luckcoins, laatste_kaart_resultaat = pas_kaart_toe(
                         laatste_kaart,
                         punten,
                         klik_kracht,
                         auto_spoken,
                         multiplier,
+                        luckcoins,
                         getrokken_kaart_sleutels,
                     )
                     kaart_trekkingen += 1
+
+                    if not kaarten_stapel:
+                        laatste_gouden_kaart = trek_kaart(gouden_kaarten_stapel)
+                        if laatste_gouden_kaart is not None:
+                            getrokken_gouden_kaart_sleutels.add(maak_kaart_sleutel(laatste_gouden_kaart))
+                            punten, klik_kracht, auto_spoken, multiplier, luckcoins, laatste_gouden_kaart_resultaat = pas_kaart_toe(
+                                laatste_gouden_kaart,
+                                punten,
+                                klik_kracht,
+                                auto_spoken,
+                                multiplier,
+                                luckcoins,
+                                getrokken_gouden_kaart_sleutels,
+                            )
+                        else:
+                            laatste_gouden_kaart_resultaat = "Alle gouden kaarten zijn al op."
+
+                        kaarten_stapel = schud_kaarten(kaarten)
+                        getrokken_kaart_sleutels = set()
+
                     shop_pagina = kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina)
 
                 # Open het kaartoverzicht.
@@ -1025,11 +1127,11 @@ def speel():
 
         # Titel en uitleg linksboven.
         titel = font_groot.render("Eng Spel", True, TEKST_KLEUR)
-        uitleg = font_klein.render("Klik op het enge poppetje en verzamel punten!", True, SUBTEKST_KLEUR)
+        uitleg = font_klein.render("Klik op de enge smiley en verzamel punten!", True, SUBTEKST_KLEUR)
         scherm.blit(titel, (40, 28))
         scherm.blit(uitleg, (42, 76))
 
-        # Teken het poppetje.
+        # Teken de smiley.
         teken_poppetje(scherm, poppetje_rect, teller, klik_animatie, punten)
         teken_kaart_paneel(
             scherm,
@@ -1037,10 +1139,15 @@ def speel():
             kaart_knop_rect,
             kaart_overzicht_knop_rect,
             multiplier,
+            luckcoins,
             laatste_kaart,
             laatste_kaart_resultaat,
+            laatste_gouden_kaart,
+            laatste_gouden_kaart_resultaat,
             kaart_trekkingen,
             kaarten_stapel,
+            gouden_kaarten_stapel,
+            getrokken_gouden_kaart_sleutels,
             font_klein,
             font_shop,
         )
@@ -1085,6 +1192,8 @@ def speel():
                 sluit_kaart_overlay_rect,
                 kaarten,
                 getrokken_kaart_sleutels,
+                gouden_kaarten,
+                getrokken_gouden_kaart_sleutels,
                 font_klein,
                 font_shop,
             )
