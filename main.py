@@ -113,6 +113,11 @@ def schud_kaarten(kaarten):
     return stapel
 
 
+def maak_kaart_sleutel(kaart):
+    """Maak een unieke sleutel voor 1 kaart."""
+    return (kaart["reeks"], kaart["nummer"])
+
+
 def teken_achtergrond(scherm, teller):
     """Teken de donkere lucht, maan en mist."""
     scherm.fill(ACHTERGROND)
@@ -620,10 +625,10 @@ def format_kaart_mijlpaal(stap):
     return f"x1e{stap}"
 
 
-def trek_kaart(kaarten, kaarten_stapel):
+def trek_kaart(kaarten_stapel):
     """Trek 1 willekeurige kaart uit het deck."""
     if not kaarten_stapel:
-        kaarten_stapel.extend(schud_kaarten(kaarten))
+        return None
     return kaarten_stapel.pop()
 
 
@@ -675,17 +680,30 @@ def teken_reset_knop(scherm, rect, punten, multiplier, font, font_klein):
     )
 
 
-def teken_kaart_paneel(scherm, paneel_rect, knop_rect, multiplier, laatste_kaart, kaart_trekkingen, kaarten_stapel, font, font_klein):
+def teken_kaart_paneel(
+    scherm,
+    paneel_rect,
+    knop_rect,
+    overzicht_knop_rect,
+    multiplier,
+    laatste_kaart,
+    kaart_trekkingen,
+    kaarten_stapel,
+    font,
+    font_klein,
+):
     """Teken het kaart-paneel."""
     kaart_beschikbaar = bereken_beschikbare_kaart_trekkingen(multiplier)
-    kaarten_over = max(0, kaart_beschikbaar - kaart_trekkingen)
+    kaarten_over = min(len(kaarten_stapel), max(0, kaart_beschikbaar - kaart_trekkingen))
     volgende_kaart = format_kaart_mijlpaal(kaart_trekkingen + 1)
 
     pygame.draw.rect(scherm, PANEEL_KLEUR, paneel_rect, border_radius=20)
     pygame.draw.rect(scherm, PANEEL_RAND, paneel_rect, 4, border_radius=20)
 
     titel = font.render("Kaarten", True, TEKST_KLEUR)
-    if kaarten_over > 0:
+    if not kaarten_stapel:
+        status = font_klein.render("Deck compleet!", True, GEEL)
+    elif kaarten_over > 0:
         status = font_klein.render(f"Vrije kaarten: {kaarten_over}", True, GEEL)
     else:
         status = font_klein.render(f"Volgende kaart bij {volgende_kaart}", True, SUBTEKST_KLEUR)
@@ -719,12 +737,85 @@ def teken_kaart_paneel(scherm, paneel_rect, knop_rect, multiplier, laatste_kaart
     pygame.draw.rect(scherm, knop_rand, knop_rect, 2, border_radius=14)
 
     knop_tekst = font.render("Trek kaart", True, TEKST_KLEUR)
-    if kaarten_over > 0:
+    if not kaarten_stapel:
+        kosten_tekst = font_klein.render("Alle 48 kaarten zijn getrokken!", True, GEEL)
+    elif kaarten_over > 0:
         kosten_tekst = font_klein.render("Gratis bij deze milestone!", True, GEEL)
     else:
         kosten_tekst = font_klein.render(f"Haal eerst {volgende_kaart}", True, GEEL)
     scherm.blit(knop_tekst, (knop_rect.x + knop_rect.width // 2 - knop_tekst.get_width() // 2, knop_rect.y + 6))
     scherm.blit(kosten_tekst, (knop_rect.x + knop_rect.width // 2 - kosten_tekst.get_width() // 2, knop_rect.y + 32))
+
+    pygame.draw.rect(scherm, KNOP_KLEUR, overzicht_knop_rect, border_radius=12)
+    pygame.draw.rect(scherm, KNOP_RAND, overzicht_knop_rect, 2, border_radius=12)
+    overzicht_tekst = font_klein.render("Bekijk kaarten", True, TEKST_KLEUR)
+    scherm.blit(
+        overzicht_tekst,
+        (
+            overzicht_knop_rect.x + overzicht_knop_rect.width // 2 - overzicht_tekst.get_width() // 2,
+            overzicht_knop_rect.y + 8,
+        ),
+    )
+
+
+def teken_kaart_overzicht(scherm, overlay_rect, sluit_rect, kaarten, getrokken_sleutels, font, font_klein):
+    """Teken een overzicht van getrokken en missende kaarten."""
+    dim = pygame.Surface((SCHERM_BREEDTE, SCHERM_HOOGTE), pygame.SRCALPHA)
+    dim.fill((0, 0, 0, 160))
+    scherm.blit(dim, (0, 0))
+
+    pygame.draw.rect(scherm, PANEEL_KLEUR, overlay_rect, border_radius=24)
+    pygame.draw.rect(scherm, PANEEL_RAND, overlay_rect, 4, border_radius=24)
+
+    titel = font.render("Kaartoverzicht", True, TEKST_KLEUR)
+    getrokken = len(getrokken_sleutels)
+    mist = len(kaarten) - getrokken
+    status = font_klein.render(f"Getrokken: {getrokken}/48   Nog te gaan: {mist}", True, GEEL)
+    uitleg = font_klein.render("Licht = getrokken, donker = nog niet.", True, SUBTEKST_KLEUR)
+    scherm.blit(titel, (overlay_rect.x + 20, overlay_rect.y + 16))
+    scherm.blit(status, (overlay_rect.x + 22, overlay_rect.y + 52))
+    scherm.blit(uitleg, (overlay_rect.x + 22, overlay_rect.y + 76))
+
+    pygame.draw.rect(scherm, KNOP_KLEUR, sluit_rect, border_radius=10)
+    pygame.draw.rect(scherm, KNOP_RAND, sluit_rect, 2, border_radius=10)
+    sluit_tekst = font_klein.render("Sluiten", True, TEKST_KLEUR)
+    scherm.blit(
+        sluit_tekst,
+        (sluit_rect.x + sluit_rect.width // 2 - sluit_tekst.get_width() // 2, sluit_rect.y + 6),
+    )
+
+    start_x = overlay_rect.x + 98
+    start_y = overlay_rect.y + 122
+    cel_breedte = 44
+    cel_hoogte = 50
+    series = ["Maan", "Mist", "Spook", "Nacht"]
+
+    for rij, reeks in enumerate(series):
+        rij_y = start_y + rij * 72
+        reeks_kaart = next(kaart for kaart in kaarten if kaart["reeks"] == reeks)
+        reeks_tekst = font_klein.render(reeks, True, reeks_kaart["kleur"])
+        scherm.blit(reeks_tekst, (overlay_rect.x + 20, rij_y + 14))
+
+        for nummer in range(1, 13):
+            kaart = next(kaart for kaart in kaarten if kaart["reeks"] == reeks and kaart["nummer"] == nummer)
+            kaart_rect = pygame.Rect(start_x + (nummer - 1) * cel_breedte, rij_y, 36, cel_hoogte)
+            sleutel = maak_kaart_sleutel(kaart)
+            getrokken_kleur = kaart["kleur"] if sleutel in getrokken_sleutels else KNOP_UIT
+            rand_kleur = KNOP_RAND if sleutel in getrokken_sleutels else PANEEL_RAND
+            pygame.draw.rect(scherm, getrokken_kleur, kaart_rect, border_radius=10)
+            pygame.draw.rect(scherm, rand_kleur, kaart_rect, 2, border_radius=10)
+
+            nummer_tekst = font_klein.render(str(nummer), True, TEKST_KLEUR)
+            scherm.blit(
+                nummer_tekst,
+                (kaart_rect.x + kaart_rect.width // 2 - nummer_tekst.get_width() // 2, kaart_rect.y + 8),
+            )
+
+            status_tekst = font_klein.render("JA" if sleutel in getrokken_sleutels else "...", True, GEEL if sleutel in getrokken_sleutels else SUBTEKST_KLEUR)
+            scherm.blit(
+                status_tekst,
+                (kaart_rect.x + kaart_rect.width // 2 - status_tekst.get_width() // 2, kaart_rect.y + 26),
+            )
 
 
 def reset_speltoestand():
@@ -760,8 +851,11 @@ def speel():
 
     # Rechthoeken voor het poppetje en de winkel.
     poppetje_rect = pygame.Rect(120, 110, 220, 260)
-    kaart_paneel_rect = pygame.Rect(360, 110, 220, 250)
+    kaart_paneel_rect = pygame.Rect(360, 110, 220, 288)
     kaart_knop_rect = pygame.Rect(kaart_paneel_rect.x + 20, kaart_paneel_rect.y + 182, kaart_paneel_rect.width - 40, 58)
+    kaart_overzicht_knop_rect = pygame.Rect(kaart_paneel_rect.x + 20, kaart_paneel_rect.y + 246, kaart_paneel_rect.width - 40, 30)
+    kaart_overlay_rect = pygame.Rect(70, 36, 820, 468)
+    sluit_kaart_overlay_rect = pygame.Rect(kaart_overlay_rect.right - 108, kaart_overlay_rect.y + 16, 88, 30)
     paneel_rect = pygame.Rect(620, 30, 300, 480)
     shop_vakken = maak_shop_vakken(paneel_rect)
     vorige_pagina_knop = pygame.Rect(paneel_rect.x + 176, paneel_rect.y + 176, 32, 28)
@@ -778,6 +872,8 @@ def speel():
     kaarten_stapel = schud_kaarten(kaarten)
     kaart_trekkingen = 0
     laatste_kaart = None
+    getrokken_kaart_sleutels = set()
+    kaart_overzicht_open = False
     upgrades = maak_upgrades()
     vakken_per_pagina = len(shop_vakken)
 
@@ -800,6 +896,11 @@ def speel():
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 muis_pos = event.pos
 
+                if kaart_overzicht_open:
+                    if sluit_kaart_overlay_rect.collidepoint(muis_pos) or kaart_overzicht_knop_rect.collidepoint(muis_pos):
+                        kaart_overzicht_open = False
+                    continue
+
                 # Klik op het poppetje voor punten.
                 if poppetje_rect.collidepoint(muis_pos):
                     punten += klik_kracht * multiplier
@@ -819,14 +920,25 @@ def speel():
 
                 # Trek een kaart voor een grote bonus.
                 elif kaart_knop_rect.collidepoint(muis_pos):
+                    if not kaarten_stapel:
+                        continue
+
                     kaart_beschikbaar = bereken_beschikbare_kaart_trekkingen(multiplier)
                     if kaart_trekkingen >= kaart_beschikbaar:
                         continue
 
-                    laatste_kaart = trek_kaart(kaarten, kaarten_stapel)
+                    laatste_kaart = trek_kaart(kaarten_stapel)
+                    if laatste_kaart is None:
+                        continue
+
+                    getrokken_kaart_sleutels.add(maak_kaart_sleutel(laatste_kaart))
                     multiplier = pas_kaart_toe(laatste_kaart, multiplier)
                     kaart_trekkingen += 1
                     shop_pagina = kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina)
+
+                # Open het kaartoverzicht.
+                elif kaart_overzicht_knop_rect.collidepoint(muis_pos):
+                    kaart_overzicht_open = True
 
                 # Ga naar de vorige shop-pagina.
                 elif vorige_pagina_knop.collidepoint(muis_pos) and shop_pagina > 0:
@@ -865,6 +977,7 @@ def speel():
             scherm,
             kaart_paneel_rect,
             kaart_knop_rect,
+            kaart_overzicht_knop_rect,
             multiplier,
             laatste_kaart,
             kaart_trekkingen,
@@ -905,6 +1018,17 @@ def speel():
         # Kleine tip onderaan.
         tip = font_klein.render("Tip: trek kaarten voor zotte multiplier-bonussen!", True, SUBTEKST_KLEUR)
         scherm.blit(tip, (38, 505))
+
+        if kaart_overzicht_open:
+            teken_kaart_overzicht(
+                scherm,
+                kaart_overlay_rect,
+                sluit_kaart_overlay_rect,
+                kaarten,
+                getrokken_kaart_sleutels,
+                font_klein,
+                font_shop,
+            )
 
         pygame.display.flip()
 
