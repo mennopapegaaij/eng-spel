@@ -225,25 +225,26 @@ def format_tienden(getal_tienden):
     return f"-{tekst}" if negatief else tekst
 
 
-def bereken_reset_drempel(multiplier):
-    """Geef hoeveel punten je nodig hebt voor +0.1x resetbonus.
-
-    Hoe hoger je multiplier al is, hoe langzamer de volgende bonus groeit.
-    """
-    veilige_multiplier = max(10, int(multiplier))
-    return max(1000, (1000 * veilige_multiplier * veilige_multiplier) // 100)
-
-
-def bereken_reset_bonus(punten, multiplier):
+def bereken_reset_bonus(punten):
     """Geef de resetbonus terug.
 
-    Je krijgt +0.1x per drempel aan punten.
-    De drempel wordt hoger als je multiplier hoger is,
-    zodat de bonus steeds langzamer groeit.
+    De bonus groeit binnen 1 speelronde steeds langzamer:
+    - +0.1x bij 1000 punten
+    - +0.2x bij 3000 punten
+    - +0.3x bij 6000 punten
+    enzovoort.
+
+    Na een reset begin je weer opnieuw bij het begin.
     """
     hele_punten = max(0, int(punten)) // 10
-    drempel = bereken_reset_drempel(multiplier)
-    return hele_punten // drempel
+    stap_budget = (hele_punten * 2) // 1000
+    return max(0, (math.isqrt(1 + 4 * stap_budget) - 1) // 2)
+
+
+def bereken_reset_drempel(punten):
+    """Geef de volgende puntengrens voor nog eens +0.1x."""
+    volgende_stap = bereken_reset_bonus(punten) + 1
+    return (1000 * volgende_stap * (volgende_stap + 1)) // 2
 
 
 def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
@@ -585,8 +586,8 @@ def teken_pagina_knop(scherm, rect, tekst, actief, font):
 
 def teken_reset_knop(scherm, rect, punten, multiplier, font, font_klein):
     """Teken de resetknop met de bonus die je nu kunt verdienen."""
-    reset_bonus = bereken_reset_bonus(punten, multiplier)
-    reset_drempel = bereken_reset_drempel(multiplier)
+    reset_bonus = bereken_reset_bonus(punten)
+    reset_drempel = bereken_reset_drempel(punten)
     knop_kleur = KNOP_KLEUR if reset_bonus > 0 else KNOP_UIT
     rand_kleur = ROOD if reset_bonus > 0 else PANEEL_RAND
 
@@ -685,7 +686,7 @@ def speel():
 
                 # Reset het spel en maak de multiplier groter.
                 elif reset_knop.collidepoint(muis_pos):
-                    reset_bonus = bereken_reset_bonus(punten, multiplier)
+                    reset_bonus = bereken_reset_bonus(punten)
                     if reset_bonus <= 0:
                         continue
 

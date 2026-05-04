@@ -23,4 +23,4 @@ python main.py
 - Linkermuisknop op het poppetje = punten krijgen
 - Linkermuisknop op een upgrade = upgrade kopen
 - De shop springt vanzelf naar de verste bladzijde waar je iets kunt betalen
-- Linkermuisknop op `Reset` = opnieuw beginnen voor een bonus-multiplier die veel langzamer groeit, en op hoge levels nog langzamer
+- Linkermuisknop op `Reset` = opnieuw beginnen; binnen 1 ronde wordt de bonus steeds duurder, maar na reset begint dat weer opnieuw
