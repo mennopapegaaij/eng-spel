@@ -1,6 +1,7 @@
 """Eng Spel - een simpel clicker-spel met een eng poppetje."""
 
 import math
+import random
 import sys
 
 import pygame
@@ -76,6 +77,18 @@ BASIS_UPGRADES = [
 ]
 SHOP_VOORVOEGSELS = ["Mist", "Spook", "Schim", "Graf", "Nacht", "Donder", "Helle", "Bot", "Maan", "Duister"]
 SHOP_ACHTERVOEGSELS = ["Klauw", "Vlam", "Storm", "Tand", "Wolk", "Beet", "Kern", "Poot", "Golf", "Ster"]
+
+
+def maak_kaarten():
+    """Maak een klein deck met originele bonuskaarten."""
+    return [
+        {"titel": "Maskerkaart", "uitleg": "Multiplier x2", "soort": "keer", "waarde": 2, "gewicht": 34, "kleur": (78, 42, 98)},
+        {"titel": "Rode Maan", "uitleg": "Multiplier x3", "soort": "keer", "waarde": 3, "gewicht": 22, "kleur": (118, 34, 72)},
+        {"titel": "Donkere Lach", "uitleg": "Multiplier x5", "soort": "keer", "waarde": 5, "gewicht": 11, "kleur": (92, 28, 122)},
+        {"titel": "Tandkaart", "uitleg": "Multiplier x10", "soort": "keer", "waarde": 10, "gewicht": 4, "kleur": (150, 26, 70)},
+        {"titel": "Spookboost", "uitleg": "Multiplier +5.0x", "soort": "plus", "waarde": 50, "gewicht": 20, "kleur": (60, 80, 130)},
+        {"titel": "Nachtboost", "uitleg": "Multiplier +20.0x", "soort": "plus", "waarde": 200, "gewicht": 9, "kleur": (110, 60, 150)},
+    ]
 
 
 def teken_achtergrond(scherm, teller):
@@ -570,6 +583,25 @@ def kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina):
     return shop_pagina
 
 
+def bereken_kaart_kosten(aantal_trekkingen):
+    """Laat kaartjes trekken steeds duurder worden."""
+    stap = aantal_trekkingen + 1
+    return 2500 * stap * stap
+
+
+def trek_kaart(kaarten):
+    """Trek 1 willekeurige kaart uit het deck."""
+    gewichten = [kaart["gewicht"] for kaart in kaarten]
+    return random.choices(kaarten, weights=gewichten, k=1)[0].copy()
+
+
+def pas_kaart_toe(kaart, multiplier):
+    """Geef de kaartbonus aan de multiplier."""
+    if kaart["soort"] == "keer":
+        return multiplier * kaart["waarde"]
+    return multiplier + kaart["waarde"]
+
+
 def teken_pagina_knop(scherm, rect, tekst, actief, font):
     """Teken een kleine knop om tussen shop-pagina's te gaan."""
     kleur = KNOP_KLEUR if actief else KNOP_UIT
@@ -611,6 +643,46 @@ def teken_reset_knop(scherm, rect, punten, multiplier, font, font_klein):
     )
 
 
+def teken_kaart_paneel(scherm, paneel_rect, knop_rect, punten, kaart_kosten, laatste_kaart, kaart_trekkingen, font, font_klein):
+    """Teken het kaart-paneel."""
+    pygame.draw.rect(scherm, PANEEL_KLEUR, paneel_rect, border_radius=20)
+    pygame.draw.rect(scherm, PANEEL_RAND, paneel_rect, 4, border_radius=20)
+
+    titel = font.render("Kaarten", True, TEKST_KLEUR)
+    status = font_klein.render(f"Getrokken: {kaart_trekkingen}", True, SUBTEKST_KLEUR)
+    scherm.blit(titel, (paneel_rect.x + 16, paneel_rect.y + 12))
+    scherm.blit(status, (paneel_rect.x + 18, paneel_rect.y + 42))
+
+    kaart_rect = pygame.Rect(paneel_rect.x + 16, paneel_rect.y + 72, paneel_rect.width - 32, 90)
+    if laatste_kaart:
+        pygame.draw.rect(scherm, laatste_kaart["kleur"], kaart_rect, border_radius=16)
+        pygame.draw.rect(scherm, KNOP_RAND, kaart_rect, 2, border_radius=16)
+        kaart_titel = font.render(laatste_kaart["titel"], True, TEKST_KLEUR)
+        kaart_uitleg = font_klein.render(laatste_kaart["uitleg"], True, WIT)
+        kaart_info = font_klein.render("Laatste kaart", True, GEEL)
+        scherm.blit(kaart_info, (kaart_rect.x + 10, kaart_rect.y + 8))
+        scherm.blit(kaart_titel, (kaart_rect.x + 10, kaart_rect.y + 30))
+        scherm.blit(kaart_uitleg, (kaart_rect.x + 10, kaart_rect.y + 56))
+    else:
+        pygame.draw.rect(scherm, KNOP_UIT, kaart_rect, border_radius=16)
+        pygame.draw.rect(scherm, PANEEL_RAND, kaart_rect, 2, border_radius=16)
+        kaart_info = font.render("Nog geen kaart", True, TEKST_KLEUR)
+        kaart_uitleg = font_klein.render("Trek er een voor een mega bonus!", True, SUBTEKST_KLEUR)
+        scherm.blit(kaart_info, (kaart_rect.x + 10, kaart_rect.y + 22))
+        scherm.blit(kaart_uitleg, (kaart_rect.x + 10, kaart_rect.y + 52))
+
+    genoeg = punten >= kaart_kosten * 10
+    knop_kleur = KNOP_KLEUR if genoeg else KNOP_UIT
+    knop_rand = KNOP_RAND if genoeg else PANEEL_RAND
+    pygame.draw.rect(scherm, knop_kleur, knop_rect, border_radius=14)
+    pygame.draw.rect(scherm, knop_rand, knop_rect, 2, border_radius=14)
+
+    knop_tekst = font.render("Trek kaart", True, TEKST_KLEUR)
+    kosten_tekst = font_klein.render(f"Kosten: {format_getal(kaart_kosten)} punten", True, GEEL)
+    scherm.blit(knop_tekst, (knop_rect.x + knop_rect.width // 2 - knop_tekst.get_width() // 2, knop_rect.y + 6))
+    scherm.blit(kosten_tekst, (knop_rect.x + knop_rect.width // 2 - kosten_tekst.get_width() // 2, knop_rect.y + 32))
+
+
 def reset_speltoestand():
     """Zet de spelwaarden terug voor een nieuwe ronde."""
     return START_PUNTEN * 10, START_KLIK_KRACHT, START_AUTO_SPOKEN, 0
@@ -644,6 +716,8 @@ def speel():
 
     # Rechthoeken voor het poppetje en de winkel.
     poppetje_rect = pygame.Rect(120, 110, 220, 260)
+    kaart_paneel_rect = pygame.Rect(360, 110, 220, 250)
+    kaart_knop_rect = pygame.Rect(kaart_paneel_rect.x + 20, kaart_paneel_rect.y + 182, kaart_paneel_rect.width - 40, 58)
     paneel_rect = pygame.Rect(620, 30, 300, 480)
     shop_vakken = maak_shop_vakken(paneel_rect)
     vorige_pagina_knop = pygame.Rect(paneel_rect.x + 176, paneel_rect.y + 176, 32, 28)
@@ -656,6 +730,10 @@ def speel():
     klik_animatie = 0
     teller = 0
     auto_punten_buffer = 0
+    kaarten = maak_kaarten()
+    kaart_trekkingen = 0
+    kaart_kosten = bereken_kaart_kosten(kaart_trekkingen)
+    laatste_kaart = None
     upgrades = maak_upgrades()
     vakken_per_pagina = len(shop_vakken)
 
@@ -695,6 +773,18 @@ def speel():
                     klik_animatie = 0
                     auto_punten_buffer = 0
 
+                # Trek een kaart voor een grote bonus.
+                elif kaart_knop_rect.collidepoint(muis_pos):
+                    if punten < kaart_kosten * 10:
+                        continue
+
+                    punten -= kaart_kosten * 10
+                    laatste_kaart = trek_kaart(kaarten)
+                    multiplier = pas_kaart_toe(laatste_kaart, multiplier)
+                    kaart_trekkingen += 1
+                    kaart_kosten = bereken_kaart_kosten(kaart_trekkingen)
+                    shop_pagina = kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina)
+
                 # Ga naar de vorige shop-pagina.
                 elif vorige_pagina_knop.collidepoint(muis_pos) and shop_pagina > 0:
                     shop_pagina -= 1
@@ -728,6 +818,17 @@ def speel():
 
         # Teken het poppetje.
         teken_poppetje(scherm, poppetje_rect, teller, klik_animatie, punten)
+        teken_kaart_paneel(
+            scherm,
+            kaart_paneel_rect,
+            kaart_knop_rect,
+            punten,
+            kaart_kosten,
+            laatste_kaart,
+            kaart_trekkingen,
+            font_klein,
+            font_shop,
+        )
         teken_reset_knop(scherm, reset_knop, punten, multiplier, font_klein, font_shop)
 
         # Teken het informatiepaneel.
@@ -759,7 +860,7 @@ def speel():
             teken_shop_knop(scherm, rect, upgrade, punten, font_shop, font_shop_klein)
 
         # Kleine tip onderaan.
-        tip = font_klein.render("Tip: de shop springt naar de verste betaalbare bladzijde!", True, SUBTEKST_KLEUR)
+        tip = font_klein.render("Tip: trek kaarten voor zotte multiplier-bonussen!", True, SUBTEKST_KLEUR)
         scherm.blit(tip, (38, 505))
 
         pygame.display.flip()

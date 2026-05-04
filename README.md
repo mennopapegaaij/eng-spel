@@ -4,12 +4,13 @@ Een simpel clicker-spel in Python met `pygame`.
 
 ## Wat doe je in het spel?
 
-- Klik op het enge poppetje om punten te krijgen
+- Klik op de enge smiley om punten te krijgen
 - Koop `Sterke klik` voor meer punten per klik
 - Koop `Spookhulp` voor automatische punten per seconde
 - Koop `Mega klik` voor nog veel meer punten per klik
 - Koop `Mega spook` voor nog meer automatische punten per seconde
 - Er zijn nu oneindig veel shop-dingen verdeeld over oneindig veel pagina's
+- Trek kaarten voor grote multiplier-bonussen zoals `x2`, `x5` en soms zelfs `x10`
 
 ## Starten
 
@@ -20,7 +21,8 @@ python main.py
 
 ## Besturing
 
-- Linkermuisknop op het poppetje = punten krijgen
+- Linkermuisknop op de smiley = punten krijgen
 - Linkermuisknop op een upgrade = upgrade kopen
+- Linkermuisknop op `Trek kaart` = een willekeurige bonuskaart pakken
 - De shop springt vanzelf naar de verste bladzijde waar je iets kunt betalen
 - Linkermuisknop op `Reset` = opnieuw beginnen; binnen 1 ronde wordt de bonus steeds duurder, maar na reset begint dat weer opnieuw
