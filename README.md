@@ -17,7 +17,8 @@ Een simpel clicker-spel in Python met `pygame`.
 - Als je alle vier de kaarten met nummer `12` hebt, krijg je `alles x100000`
 - Als je een normaal deck van 48 kaarten compleet maakt, krijg je 1 gouden kaart en begint het normale deck opnieuw
 - Gouden kaarten geven dezelfde soort nummer-bonussen, maar dan voor je `luckcoins`
-- `Luckcoins` beginnen bij `1`
+- `Luckcoins` beginnen bij `0`
+- Je krijgt vanzelf elke seconde `0.1` luckcoin erbij
 
 ## Starten
 

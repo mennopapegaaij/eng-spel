@@ -871,7 +871,7 @@ def teken_kaart_paneel(
         ),
     )
 
-    luckcoins_tekst = font_klein.render(maak_passende_tekst(font_klein, f"Luckcoins: {format_getal(luckcoins)}", paneel_breedte), True, GEEL)
+    luckcoins_tekst = font_klein.render(maak_passende_tekst(font_klein, f"Luckcoins: {format_tienden(luckcoins)}", paneel_breedte), True, GEEL)
     scherm.blit(luckcoins_tekst, (paneel_rect.x + 18, paneel_rect.y + 284))
 
     if laatste_gouden_kaart:
@@ -986,6 +986,18 @@ def verwerk_auto_punten(punten, auto_spoken, multiplier, buffer_ms, delta_ms):
     return punten, buffer_ms
 
 
+def verwerk_luckcoins(luckcoins, buffer_ms, delta_ms):
+    """Geef elke seconde netjes 0.1 luckcoin erbij."""
+    if delta_ms <= 0:
+        return luckcoins, buffer_ms
+
+    buffer_ms += delta_ms
+    extra_tienden = buffer_ms // 1000
+    buffer_ms %= 1000
+    luckcoins += extra_tienden
+    return luckcoins, buffer_ms
+
+
 def speel():
     """Start en draai het clicker-spel."""
     pygame.init()
@@ -1016,10 +1028,11 @@ def speel():
     # Spelvariabelen.
     punten, klik_kracht, auto_spoken, shop_pagina = reset_speltoestand()
     multiplier = 10
-    luckcoins = 1
+    luckcoins = 0
     klik_animatie = 0
     teller = 0
     auto_punten_buffer = 0
+    luckcoin_buffer = 0
     kaarten = maak_kaarten()
     kaarten_stapel = schud_kaarten(kaarten)
     gouden_kaarten = maak_kaarten(goud=True)
@@ -1043,6 +1056,7 @@ def speel():
         punten, auto_punten_buffer = verwerk_auto_punten(
             punten, auto_spoken, multiplier, auto_punten_buffer, delta_ms
         )
+        luckcoins, luckcoin_buffer = verwerk_luckcoins(luckcoins, luckcoin_buffer, delta_ms)
         if punten > punten_voor_auto:
             shop_pagina = kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina)
 
