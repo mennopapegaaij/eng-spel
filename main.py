@@ -4,6 +4,7 @@ import json
 import math
 import random
 import sys
+from array import array
 from pathlib import Path
 
 import pygame
@@ -87,6 +88,10 @@ LUCKSHOP_START_FACTOR = 100
 LUCKSHOP_VOORVOEGSELS = ["Geluk", "Ster", "Maan", "Fortuin", "Goud", "Klaver", "Wens", "Kroon"]
 LUCKSHOP_ACHTERVOEGSELS = ["Regen", "Boost", "Stapel", "Storm", "Ruil", "Sprong", "Schat", "Golf"]
 WERELD_BASISPRIJS = 10**66
+MUZIEK_SAMPLE_RATE = 22050
+MUZIEK_VOLUME = 0.32
+MUZIEK_BPM = 120
+MUZIEK_LUS_SECONDEN = 16
 WERELD_THEMAS = [
     {
         "naam": "Schaduw",
@@ -454,6 +459,172 @@ def pak_wereldvariabelen(wereldtoestand):
         wereldtoestand["getrokken_kaart_sleutels"],
         wereldtoestand["getrokken_gouden_kaart_sleutels"],
     )
+
+
+def klem_geluid(waarde):
+    """Houd een geluidswaarde tussen -1 en 1."""
+    return max(-1.0, min(1.0, waarde))
+
+
+def noot_naar_hz(noot):
+    """Zet een nootnummer om naar Hertz."""
+    return 440.0 * (2 ** ((noot - 69) / 12))
+
+
+def mix_klank(spoor_links, spoor_rechts, index, waarde, pan):
+    """Zet 1 geluidswaarde op links en rechts."""
+    links_pan = (1.0 - pan) * 0.5
+    rechts_pan = (1.0 + pan) * 0.5
+    spoor_links[index] += waarde * links_pan
+    spoor_rechts[index] += waarde * rechts_pan
+
+
+def voeg_toon_toe(spoor_links, spoor_rechts, start_tijd, noot, duur, volume, pan, klank):
+    """Voeg 1 muziekinstrument toe aan het spoor."""
+    start_index = int(start_tijd * MUZIEK_SAMPLE_RATE)
+    totaal = int(duur * MUZIEK_SAMPLE_RATE)
+    frequentie = noot_naar_hz(noot)
+
+    for stap in range(totaal):
+        index = start_index + stap
+        if index >= len(spoor_links):
+            break
+
+        tijd = stap / MUZIEK_SAMPLE_RATE
+        verhouding = stap / max(1, totaal - 1)
+        fase = 2 * math.pi * frequentie * tijd
+
+        if klank == "piano":
+            golf = math.sin(fase) + 0.45 * math.sin(fase * 2) + 0.2 * math.sin(fase * 3)
+            envelop = min(1.0, tijd * 20) * math.exp(-tijd * 3.6)
+        elif klank == "gitaar":
+            golf = 0.65 * math.sin(fase) + 0.35 * math.sin(fase * 2.02) + 0.25 * math.sin(fase * 4)
+            golf = math.tanh(golf * 2.8)
+            envelop = min(1.0, tijd * 18) * (1.0 - verhouding * 0.7)
+        elif klank == "bas":
+            golf = 0.8 * math.sin(fase) + 0.2 * math.sin(fase * 0.5)
+            envelop = min(1.0, tijd * 10) * math.exp(-tijd * 1.5)
+        else:
+            detune = math.sin(2 * math.pi * (frequentie * 1.005) * tijd)
+            golf = 0.55 * math.sin(fase) + 0.45 * detune
+            envelop = min(1.0, tijd * 1.8) * max(0.0, 1.0 - verhouding * 0.55)
+
+        mix_klank(spoor_links, spoor_rechts, index, golf * envelop * volume, pan)
+
+
+def voeg_kick_toe(spoor_links, spoor_rechts, start_tijd, volume):
+    """Voeg een diepe drumkick toe."""
+    start_index = int(start_tijd * MUZIEK_SAMPLE_RATE)
+    totaal = int(0.34 * MUZIEK_SAMPLE_RATE)
+
+    for stap in range(totaal):
+        index = start_index + stap
+        if index >= len(spoor_links):
+            break
+
+        tijd = stap / MUZIEK_SAMPLE_RATE
+        frequentie = 90 - min(52, tijd * 180)
+        fase = 2 * math.pi * frequentie * tijd
+        golf = math.sin(fase) + 0.35 * math.sin(fase * 0.5)
+        envelop = math.exp(-tijd * 8.5)
+        mix_klank(spoor_links, spoor_rechts, index, golf * envelop * volume, 0.0)
+
+
+def voeg_snare_toe(spoor_links, spoor_rechts, start_tijd, volume, toeval):
+    """Voeg een felle snare toe."""
+    start_index = int(start_tijd * MUZIEK_SAMPLE_RATE)
+    totaal = int(0.22 * MUZIEK_SAMPLE_RATE)
+
+    for stap in range(totaal):
+        index = start_index + stap
+        if index >= len(spoor_links):
+            break
+
+        tijd = stap / MUZIEK_SAMPLE_RATE
+        ruis = toeval.uniform(-1.0, 1.0)
+        toon = math.sin(2 * math.pi * 190 * tijd)
+        envelop = math.exp(-tijd * 14)
+        waarde = (ruis * 0.75 + toon * 0.25) * envelop * volume
+        mix_klank(spoor_links, spoor_rechts, index, waarde, 0.0)
+
+
+def voeg_hihat_toe(spoor_links, spoor_rechts, start_tijd, volume, toeval, pan):
+    """Voeg een scherpe hi-hat toe."""
+    start_index = int(start_tijd * MUZIEK_SAMPLE_RATE)
+    totaal = int(0.08 * MUZIEK_SAMPLE_RATE)
+
+    for stap in range(totaal):
+        index = start_index + stap
+        if index >= len(spoor_links):
+            break
+
+        tijd = stap / MUZIEK_SAMPLE_RATE
+        ruis = toeval.uniform(-1.0, 1.0)
+        ring = math.sin(2 * math.pi * 7200 * tijd)
+        envelop = math.exp(-tijd * 28)
+        waarde = (ruis * 0.8 + ring * 0.2) * envelop * volume
+        mix_klank(spoor_links, spoor_rechts, index, waarde, pan)
+
+
+def maak_muziek_buffer(wereld_nummer):
+    """Bouw een eng loopje met drums, gitaar, piano en extra lagen."""
+    totaal_samples = MUZIEK_SAMPLE_RATE * MUZIEK_LUS_SECONDEN
+    spoor_links = [0.0] * totaal_samples
+    spoor_rechts = [0.0] * totaal_samples
+    beat = 60.0 / MUZIEK_BPM
+    toeval = random.Random(wereld_nummer * 991)
+    grondnoten = [40, 40, 43, 38, 45, 43, 41, 36]
+    verschuiving = (wereld_nummer - 1) % 6
+    grondnoten = [noot + verschuiving for noot in grondnoten]
+
+    for tel in range(MUZIEK_LUS_SECONDEN * 2):
+        start = tel * beat
+        beat_in_maat = tel % 4
+        maat = tel // 4
+
+        if beat_in_maat in (0, 2):
+            voeg_kick_toe(spoor_links, spoor_rechts, start, 0.9)
+        if beat_in_maat in (1, 3):
+            voeg_snare_toe(spoor_links, spoor_rechts, start, 0.55, toeval)
+        voeg_hihat_toe(spoor_links, spoor_rechts, start, 0.18, toeval, -0.25 if tel % 2 == 0 else 0.25)
+        voeg_hihat_toe(spoor_links, spoor_rechts, start + beat * 0.5, 0.12, toeval, 0.2 if tel % 2 == 0 else -0.2)
+
+        grondnoot = grondnoten[min(maat, len(grondnoten) - 1)]
+        voeg_toon_toe(spoor_links, spoor_rechts, start, grondnoot - 12, beat * 1.7, 0.38, -0.1, "bas")
+
+        if beat_in_maat in (0, 2):
+            voeg_toon_toe(spoor_links, spoor_rechts, start + beat * 0.08, grondnoot, beat * 0.8, 0.22, 0.3, "gitaar")
+            voeg_toon_toe(spoor_links, spoor_rechts, start + beat * 0.28, grondnoot + 7, beat * 0.6, 0.16, -0.35, "gitaar")
+
+        if beat_in_maat == 1:
+            voeg_toon_toe(spoor_links, spoor_rechts, start, grondnoot + 12, beat * 1.2, 0.18, -0.4, "piano")
+            voeg_toon_toe(spoor_links, spoor_rechts, start, grondnoot + 15, beat * 1.0, 0.14, 0.4, "piano")
+        if beat_in_maat == 3:
+            voeg_toon_toe(spoor_links, spoor_rechts, start, grondnoot + 7, beat * 1.3, 0.17, 0.35, "piano")
+            voeg_toon_toe(spoor_links, spoor_rechts, start, grondnoot + 10, beat * 1.0, 0.12, -0.25, "piano")
+
+    for maat in range(0, 8, 2):
+        start = maat * 4 * beat
+        grondnoot = grondnoten[min(maat, len(grondnoten) - 1)]
+        voeg_toon_toe(spoor_links, spoor_rechts, start, grondnoot + 12, beat * 8, 0.11, -0.2, "pad")
+        voeg_toon_toe(spoor_links, spoor_rechts, start, grondnoot + 19, beat * 8, 0.09, 0.2, "pad")
+        voeg_toon_toe(spoor_links, spoor_rechts, start, grondnoot + 24, beat * 8, 0.07, 0.0, "pad")
+
+    geluid = array("h")
+    for links, rechts in zip(spoor_links, spoor_rechts):
+        links_sample = int(klem_geluid(links) * 32767)
+        rechts_sample = int(klem_geluid(rechts) * 32767)
+        geluid.append(links_sample)
+        geluid.append(rechts_sample)
+
+    return geluid.tobytes()
+
+
+def maak_enge_muziek(wereld_nummer):
+    """Maak een pygame-geluid voor de achtergrondmuziek."""
+    if pygame.mixer.get_init() is None:
+        return None
+    return pygame.mixer.Sound(buffer=maak_muziek_buffer(wereld_nummer))
 
 
 def teken_achtergrond(scherm, teller):
@@ -1698,6 +1869,7 @@ def verwerk_luckcoins(luckcoins, buffer_ms, delta_ms):
 
 def speel():
     """Start en draai het clicker-spel."""
+    pygame.mixer.pre_init(MUZIEK_SAMPLE_RATE, -16, 2, 512)
     pygame.init()
     scherm = pygame.display.set_mode((SCHERM_BREEDTE, SCHERM_HOOGTE))
     pygame.display.set_caption(SCHERM_TITEL)
@@ -1777,6 +1949,9 @@ def speel():
     luckshop_upgrades = []
     vakken_per_pagina = len(shop_vakken)
     luckshop_vakken = maak_luckshop_vakken(luckshop_overlay_rect)
+    muziek_geluid = None
+    muziek_kanaal = None
+    muziek_wereld = None
 
     def bewaar_actieve_wereld():
         """Bewaar de actieve wereld terug in de wereldenlijst."""
@@ -1852,14 +2027,35 @@ def speel():
         luckshop_open = False
         werelden_open = False
         laad_actieve_wereld()
+        start_muziek()
 
     def sla_huidige_voortgang_op():
         """Bewaar alle werelden in het opslagbestand."""
         bewaar_actieve_wereld()
         sla_spel_op(actieve_wereld, werelden)
 
+    def start_muziek():
+        """Start of ververs de enge achtergrondmuziek."""
+        nonlocal muziek_geluid, muziek_kanaal, muziek_wereld
+        if pygame.mixer.get_init() is None:
+            return
+        if muziek_wereld == wereld_nummer and muziek_kanaal is not None and muziek_kanaal.get_busy():
+            return
+
+        if muziek_kanaal is not None:
+            muziek_kanaal.stop()
+
+        muziek_geluid = maak_enge_muziek(wereld_nummer)
+        if muziek_geluid is None:
+            return
+
+        muziek_geluid.set_volume(MUZIEK_VOLUME)
+        muziek_kanaal = muziek_geluid.play(loops=-1)
+        muziek_wereld = wereld_nummer
+
     laad_actieve_wereld()
     wereld_pagina = (actieve_wereld - 1) // len(wereld_vakken)
+    start_muziek()
 
     while True:
         delta_ms = klok.tick(FPS)
@@ -1878,6 +2074,8 @@ def speel():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 sla_huidige_voortgang_op()
+                if muziek_kanaal is not None:
+                    muziek_kanaal.stop()
                 pygame.quit()
                 sys.exit()
 
@@ -1898,6 +2096,7 @@ def speel():
                         werelden_open = False
                         laad_actieve_wereld()
                         wereld_pagina = 0
+                        start_muziek()
                         sla_huidige_voortgang_op()
                     elif echte_reset_nee_rect.collidepoint(muis_pos):
                         echte_reset_open = False
@@ -2061,6 +2260,7 @@ def speel():
         teken_achtergrond(scherm, teller)
         wereld_thema = maak_wereld_thema(wereld_nummer)
         koop_kosten = bereken_wereld_kosten(len(werelden) + 1)
+        start_muziek()
 
         # Titel en uitleg linksboven.
         titel = font_groot.render(maak_passende_tekst(font_groot, f"Eng Spel - Wereld {format_getal(wereld_nummer)}", 320), True, TEKST_KLEUR)
