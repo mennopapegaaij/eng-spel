@@ -82,8 +82,10 @@ SHOP_ACHTERVOEGSELS = ["Klauw", "Vlam", "Storm", "Tand", "Wolk", "Beet", "Kern",
 OPSLAAN_BESTAND = Path(__file__).with_name("spelopslag.json")
 OPSLAAN_VERSIE = 1
 AUTO_OPSLAAN_MS = 5000
-LUCKSHOP_KOSTEN = 10
-LUCKSHOP_FACTOR = 100
+LUCKSHOP_START_KOSTEN = 10000
+LUCKSHOP_START_FACTOR = 100
+LUCKSHOP_VOORVOEGSELS = ["Geluk", "Ster", "Maan", "Fortuin", "Goud", "Klaver", "Wens", "Kroon"]
+LUCKSHOP_ACHTERVOEGSELS = ["Regen", "Boost", "Stapel", "Storm", "Ruil", "Sprong", "Schat", "Golf"]
 
 
 def maak_kaarten(goud=False):
@@ -203,6 +205,7 @@ def maak_nieuwe_speltoestand():
         "klik_kracht": START_KLIK_KRACHT,
         "auto_spoken": START_AUTO_SPOKEN,
         "shop_pagina": 0,
+        "luckshop_pagina": 0,
         "multiplier": 10,
         "luckcoins": 0,
         "klik_animatie": 0,
@@ -218,6 +221,7 @@ def maak_nieuwe_speltoestand():
         "laatste_kaart_resultaat": "",
         "laatste_gouden_kaart": None,
         "laatste_gouden_kaart_resultaat": "",
+        "laatste_luckshop_resultaat": f"Open de luckshop en koop punten x{format_getal(LUCKSHOP_START_FACTOR)}",
         "getrokken_kaart_sleutels": set(),
         "getrokken_gouden_kaart_sleutels": set(),
         "kaart_overzicht_open": False,
@@ -245,6 +249,7 @@ def laad_speltoestand():
         speltoestand["klik_kracht"] = int(data.get("klik_kracht", speltoestand["klik_kracht"]))
         speltoestand["auto_spoken"] = int(data.get("auto_spoken", speltoestand["auto_spoken"]))
         speltoestand["shop_pagina"] = max(0, int(data.get("shop_pagina", speltoestand["shop_pagina"])))
+        speltoestand["luckshop_pagina"] = max(0, int(data.get("luckshop_pagina", speltoestand["luckshop_pagina"])))
         speltoestand["multiplier"] = max(1, int(data.get("multiplier", speltoestand["multiplier"])))
         speltoestand["luckcoins"] = max(0, int(data.get("luckcoins", speltoestand["luckcoins"])))
         speltoestand["auto_punten_buffer"] = max(0, int(data.get("auto_punten_buffer", 0)))
@@ -252,6 +257,7 @@ def laad_speltoestand():
         speltoestand["kaart_trekkingen"] = max(0, int(data.get("kaart_trekkingen", 0)))
         speltoestand["laatste_kaart_resultaat"] = str(data.get("laatste_kaart_resultaat", ""))
         speltoestand["laatste_gouden_kaart_resultaat"] = str(data.get("laatste_gouden_kaart_resultaat", ""))
+        speltoestand["laatste_luckshop_resultaat"] = str(data.get("laatste_luckshop_resultaat", speltoestand["laatste_luckshop_resultaat"]))
 
         if "kaarten_stapel" in data:
             speltoestand["kaarten_stapel"] = [kaart_van_bewaar_data(kaart, kaart_lookup) for kaart in data["kaarten_stapel"]]
@@ -277,6 +283,7 @@ def sla_spel_op(
     klik_kracht,
     auto_spoken,
     shop_pagina,
+    luckshop_pagina,
     multiplier,
     luckcoins,
     auto_punten_buffer,
@@ -286,6 +293,7 @@ def sla_spel_op(
     laatste_kaart_resultaat,
     laatste_gouden_kaart,
     laatste_gouden_kaart_resultaat,
+    laatste_luckshop_resultaat,
     getrokken_kaart_sleutels,
     getrokken_gouden_kaart_sleutels,
     kaarten_stapel,
@@ -298,6 +306,7 @@ def sla_spel_op(
         "klik_kracht": int(klik_kracht),
         "auto_spoken": int(auto_spoken),
         "shop_pagina": int(shop_pagina),
+        "luckshop_pagina": int(luckshop_pagina),
         "multiplier": int(multiplier),
         "luckcoins": int(luckcoins),
         "auto_punten_buffer": int(auto_punten_buffer),
@@ -307,6 +316,7 @@ def sla_spel_op(
         "laatste_kaart_resultaat": laatste_kaart_resultaat,
         "laatste_gouden_kaart": kaart_naar_bewaar_data(laatste_gouden_kaart),
         "laatste_gouden_kaart_resultaat": laatste_gouden_kaart_resultaat,
+        "laatste_luckshop_resultaat": laatste_luckshop_resultaat,
         "getrokken_kaart_sleutels": sleutels_naar_bewaar_data(getrokken_kaart_sleutels),
         "getrokken_gouden_kaart_sleutels": sleutels_naar_bewaar_data(getrokken_gouden_kaart_sleutels),
         "kaarten_stapel": [kaart_naar_bewaar_data(kaart) for kaart in kaarten_stapel],
@@ -338,6 +348,7 @@ def pak_spelvariabelen(speltoestand):
         speltoestand["klik_kracht"],
         speltoestand["auto_spoken"],
         speltoestand["shop_pagina"],
+        speltoestand["luckshop_pagina"],
         speltoestand["multiplier"],
         speltoestand["luckcoins"],
         speltoestand["klik_animatie"],
@@ -353,6 +364,7 @@ def pak_spelvariabelen(speltoestand):
         speltoestand["laatste_kaart_resultaat"],
         speltoestand["laatste_gouden_kaart"],
         speltoestand["laatste_gouden_kaart_resultaat"],
+        speltoestand["laatste_luckshop_resultaat"],
         speltoestand["getrokken_kaart_sleutels"],
         speltoestand["getrokken_gouden_kaart_sleutels"],
         speltoestand["kaart_overzicht_open"],
@@ -798,6 +810,53 @@ def pak_shop_upgrades(upgrades, shop_pagina, vakken_per_pagina):
     return upgrades[start:eind]
 
 
+def maak_luckshop_upgrades():
+    """Maak de beginlijst voor de oneindige luckshop."""
+    return [maak_volgende_luckshop_upgrade([])]
+
+
+def maak_volgende_luckshop_upgrade(luckshop_upgrades):
+    """Maak precies 1 nieuwe luckshop-upgrade."""
+    index = len(luckshop_upgrades)
+    nummer = index + 1
+    voor = LUCKSHOP_VOORVOEGSELS[index % len(LUCKSHOP_VOORVOEGSELS)]
+    achter = LUCKSHOP_ACHTERVOEGSELS[(index // len(LUCKSHOP_VOORVOEGSELS)) % len(LUCKSHOP_ACHTERVOEGSELS)]
+    titel = f"{voor}{achter} {format_getal(nummer)}"
+
+    if not luckshop_upgrades:
+        return {
+            "titel": titel,
+            "uitleg": f"Punten x{format_getal(LUCKSHOP_START_FACTOR)}",
+            "kosten": LUCKSHOP_START_KOSTEN,
+            "punten_factor": LUCKSHOP_START_FACTOR,
+        }
+
+    vorige_factor = luckshop_upgrades[-1]["punten_factor"]
+    vorige_kosten = luckshop_upgrades[-1]["kosten"]
+    factor = (vorige_factor * 118) // 100 + 35 + nummer * 4
+    kosten = (vorige_kosten * 145) // 100 + factor * 80
+    return {
+        "titel": titel,
+        "uitleg": f"Punten x{format_getal(factor)}",
+        "kosten": kosten,
+        "punten_factor": factor,
+    }
+
+
+def zorg_voor_luckshop_upgrades(luckshop_upgrades, tot_index):
+    """Maak alleen zoveel luckshop-dingen als nu nodig zijn."""
+    while len(luckshop_upgrades) <= tot_index:
+        luckshop_upgrades.append(maak_volgende_luckshop_upgrade(luckshop_upgrades))
+
+
+def pak_luckshop_upgrades(luckshop_upgrades, luckshop_pagina, vakken_per_pagina):
+    """Pak alleen de luckshop-dingen van de huidige bladzijde."""
+    start = luckshop_pagina * vakken_per_pagina
+    eind = start + vakken_per_pagina
+    zorg_voor_luckshop_upgrades(luckshop_upgrades, eind - 1)
+    return luckshop_upgrades[start:eind]
+
+
 def teken_paneel(scherm, paneel_rect):
     """Teken het rechter paneel voor punten en upgrades."""
     pygame.draw.rect(scherm, PANEEL_KLEUR, paneel_rect, border_radius=20)
@@ -813,6 +872,25 @@ def maak_shop_vakken(paneel_rect):
     hoogte = 52
     tussenruimte_x = 10
     tussenruimte_y = 8
+
+    for rij in range(4):
+        for kolom in range(2):
+            vak_x = start_x + kolom * (breedte + tussenruimte_x)
+            vak_y = start_y + rij * (hoogte + tussenruimte_y)
+            vakken.append(pygame.Rect(vak_x, vak_y, breedte, hoogte))
+
+    return vakken
+
+
+def maak_luckshop_vakken(overlay_rect):
+    """Maak 8 grote vakken voor de luckshop-overlay."""
+    vakken = []
+    start_x = overlay_rect.x + 18
+    start_y = overlay_rect.y + 106
+    breedte = 387
+    hoogte = 66
+    tussenruimte_x = 10
+    tussenruimte_y = 10
 
     for rij in range(4):
         for kolom in range(2):
@@ -845,6 +923,28 @@ def teken_shop_knop(scherm, rect, upgrade, punten, font_titel, font_klein):
     scherm.blit(kosten_tekst, (rect.x + 8, rect.y + 35))
 
 
+def teken_luckshop_knop(scherm, rect, upgrade, luckcoins, font_titel, font_klein):
+    """Teken 1 luckshop-vak."""
+    genoeg = luckcoins >= upgrade["kosten"]
+    kleur = KNOP_KLEUR if genoeg else KNOP_UIT
+    rand = GEEL if genoeg else PANEEL_RAND
+
+    pygame.draw.rect(scherm, kleur, rect, border_radius=14)
+    pygame.draw.rect(scherm, rand, rect, 2, border_radius=14)
+
+    tekst_breedte = rect.width - 18
+    titel = maak_passende_tekst(font_titel, upgrade["titel"], tekst_breedte)
+    uitleg = maak_passende_tekst(font_klein, upgrade["uitleg"], tekst_breedte)
+    kosten = maak_passende_tekst(font_klein, f"{format_tienden(upgrade['kosten'])} luckcoins", tekst_breedte)
+    titel_tekst = font_titel.render(titel, True, TEKST_KLEUR)
+    uitleg_tekst = font_klein.render(uitleg, True, GEEL)
+    kosten_tekst = font_klein.render(kosten, True, SUBTEKST_KLEUR)
+
+    scherm.blit(titel_tekst, (rect.x + 10, rect.y + 6))
+    scherm.blit(uitleg_tekst, (rect.x + 10, rect.y + 26))
+    scherm.blit(kosten_tekst, (rect.x + 10, rect.y + 44))
+
+
 def kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina):
     """Ga naar de verste pagina waar je nog iets kunt kopen."""
     while upgrades[-1]["kosten"] * 10 <= punten:
@@ -870,6 +970,33 @@ def kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina):
         return betaalbare_pagina
 
     return shop_pagina
+
+
+def kies_volgende_luckshop_pagina(luckcoins, luckshop_pagina, luckshop_upgrades, vakken_per_pagina):
+    """Ga naar de verste luckshop-pagina waar je nog iets kunt kopen."""
+    while luckshop_upgrades[-1]["kosten"] <= luckcoins:
+        luckshop_upgrades.append(maak_volgende_luckshop_upgrade(luckshop_upgrades))
+
+    laag = 0
+    hoog = len(luckshop_upgrades) - 1
+    laatste_betaalbare_index = -1
+
+    while laag <= hoog:
+        midden = (laag + hoog) // 2
+        if luckshop_upgrades[midden]["kosten"] <= luckcoins:
+            laatste_betaalbare_index = midden
+            laag = midden + 1
+        else:
+            hoog = midden - 1
+
+    if laatste_betaalbare_index < 0:
+        return luckshop_pagina
+
+    betaalbare_pagina = laatste_betaalbare_index // vakken_per_pagina
+    if betaalbare_pagina > luckshop_pagina:
+        return betaalbare_pagina
+
+    return luckshop_pagina
 
 
 def bereken_beschikbare_kaart_trekkingen(multiplier):
@@ -954,15 +1081,16 @@ def pas_kaart_toe(kaart, punten, klik_kracht, auto_spoken, multiplier, luckcoins
     return punten, klik_kracht, auto_spoken, multiplier, luckcoins, "Geen bonus"
 
 
-def koop_luckshop_bonus(punten, luckcoins):
+def koop_luckshop_bonus(punten, luckcoins, upgrade):
     """Ruil luckcoins voor een grote puntenbonus."""
-    if luckcoins < LUCKSHOP_KOSTEN:
+    if luckcoins < upgrade["kosten"]:
         return punten, luckcoins, "Niet genoeg luckcoins"
 
     basis_punten = max(10, punten)
-    nieuwe_punten = basis_punten * LUCKSHOP_FACTOR
-    nieuwe_luckcoins = luckcoins - LUCKSHOP_KOSTEN
-    return nieuwe_punten, nieuwe_luckcoins, f"Punten x{LUCKSHOP_FACTOR} gekocht!"
+    factor = upgrade["punten_factor"]
+    nieuwe_punten = basis_punten * factor
+    nieuwe_luckcoins = luckcoins - upgrade["kosten"]
+    return nieuwe_punten, nieuwe_luckcoins, f"Punten x{format_getal(factor)} gekocht!"
 
 
 def teken_pagina_knop(scherm, rect, tekst, actief, font):
@@ -1053,6 +1181,55 @@ def teken_echte_reset_waarschuwing(scherm, overlay_rect, ja_rect, nee_rect, font
     )
 
 
+def teken_luckshop_overzicht(
+    scherm,
+    overlay_rect,
+    sluit_rect,
+    vorige_rect,
+    volgende_rect,
+    luckshop_upgrades,
+    luckshop_pagina,
+    luckshop_vakken,
+    luckcoins,
+    laatste_luckshop_resultaat,
+    font,
+    font_klein,
+):
+    """Teken de oneindige luckshop met pagina's."""
+    dim = pygame.Surface((SCHERM_BREEDTE, SCHERM_HOOGTE), pygame.SRCALPHA)
+    dim.fill((0, 0, 0, 160))
+    scherm.blit(dim, (0, 0))
+
+    pygame.draw.rect(scherm, PANEEL_KLEUR, overlay_rect, border_radius=24)
+    pygame.draw.rect(scherm, PANEEL_RAND, overlay_rect, 4, border_radius=24)
+
+    titel = font.render("Luckshop", True, TEKST_KLEUR)
+    uitleg = font_klein.render("Ruil luckcoins voor heel veel normale punten.", True, SUBTEKST_KLEUR)
+    luckcoins_tekst = font_klein.render(f"Luckcoins: {format_tienden(luckcoins)}", True, GEEL)
+    pagina_tekst = font_klein.render(f"Pagina {luckshop_pagina + 1}", True, SUBTEKST_KLEUR)
+    resultaat_tekst = font_klein.render(maak_passende_tekst(font_klein, laatste_luckshop_resultaat, overlay_rect.width - 40), True, GEEL)
+    scherm.blit(titel, (overlay_rect.x + 20, overlay_rect.y + 16))
+    scherm.blit(uitleg, (overlay_rect.x + 22, overlay_rect.y + 52))
+    scherm.blit(luckcoins_tekst, (overlay_rect.x + 22, overlay_rect.y + 76))
+    scherm.blit(pagina_tekst, (overlay_rect.x + 510, overlay_rect.y + 22))
+    scherm.blit(resultaat_tekst, (overlay_rect.x + 22, overlay_rect.bottom - 30))
+
+    pygame.draw.rect(scherm, KNOP_KLEUR, sluit_rect, border_radius=10)
+    pygame.draw.rect(scherm, KNOP_RAND, sluit_rect, 2, border_radius=10)
+    sluit_tekst = font_klein.render("Sluiten", True, TEKST_KLEUR)
+    scherm.blit(
+        sluit_tekst,
+        (sluit_rect.x + sluit_rect.width // 2 - sluit_tekst.get_width() // 2, sluit_rect.y + 6),
+    )
+
+    teken_pagina_knop(scherm, vorige_rect, "<", luckshop_pagina > 0, font_klein)
+    teken_pagina_knop(scherm, volgende_rect, ">", True, font_klein)
+
+    zichtbare_upgrades = pak_luckshop_upgrades(luckshop_upgrades, luckshop_pagina, len(luckshop_vakken))
+    for upgrade, rect in zip(zichtbare_upgrades, luckshop_vakken):
+        teken_luckshop_knop(scherm, rect, upgrade, luckcoins, font, font_klein)
+
+
 def teken_kaart_paneel(
     scherm,
     paneel_rect,
@@ -1061,6 +1238,7 @@ def teken_kaart_paneel(
     luckshop_knop_rect,
     multiplier,
     luckcoins,
+    luckshop_pagina,
     laatste_kaart,
     laatste_kaart_resultaat,
     laatste_gouden_kaart,
@@ -1146,13 +1324,13 @@ def teken_kaart_paneel(
         ),
     )
 
-    genoeg_luckcoins = luckcoins >= LUCKSHOP_KOSTEN
-    luckshop_kleur = KNOP_KLEUR if genoeg_luckcoins else KNOP_UIT
-    luckshop_rand = GEEL if genoeg_luckcoins else PANEEL_RAND
+    genoeg_luckcoins = luckcoins >= LUCKSHOP_START_KOSTEN
+    luckshop_kleur = KNOP_KLEUR
+    luckshop_rand = GEEL if genoeg_luckcoins else KNOP_RAND
     pygame.draw.rect(scherm, luckshop_kleur, luckshop_knop_rect, border_radius=12)
     pygame.draw.rect(scherm, luckshop_rand, luckshop_knop_rect, 2, border_radius=12)
-    luckshop_titel = font.render(maak_passende_tekst(font, f"Koop punten x{LUCKSHOP_FACTOR}", luckshop_knop_rect.width - 16), True, TEKST_KLEUR)
-    luckshop_kosten = font_klein.render(maak_passende_tekst(font_klein, f"Kost {format_tienden(LUCKSHOP_KOSTEN)} luckcoin", luckshop_knop_rect.width - 16), True, GEEL)
+    luckshop_titel = font.render(maak_passende_tekst(font, "Open luckshop", luckshop_knop_rect.width - 16), True, TEKST_KLEUR)
+    luckshop_kosten = font_klein.render(maak_passende_tekst(font_klein, "Oneindig met bladzijdes", luckshop_knop_rect.width - 16), True, GEEL)
     scherm.blit(
         luckshop_titel,
         (luckshop_knop_rect.x + luckshop_knop_rect.width // 2 - luckshop_titel.get_width() // 2, luckshop_knop_rect.y + 4),
@@ -1163,10 +1341,11 @@ def teken_kaart_paneel(
     )
 
     luckcoins_tekst = font_klein.render(maak_passende_tekst(font_klein, f"Luckcoins: {format_tienden(luckcoins)}", paneel_breedte), True, GEEL)
-    scherm.blit(luckcoins_tekst, (paneel_rect.x + 18, paneel_rect.y + 342))
-
+    luckshop_pagina_tekst = font_klein.render(maak_passende_tekst(font_klein, f"Luckshop pagina: {luckshop_pagina + 1}", paneel_breedte), True, SUBTEKST_KLEUR)
     luckshop_resultaat = font_klein.render(maak_passende_tekst(font_klein, laatste_luckshop_resultaat, paneel_breedte), True, GEEL if genoeg_luckcoins else SUBTEKST_KLEUR)
-    scherm.blit(luckshop_resultaat, (paneel_rect.x + 18, paneel_rect.y + 362))
+    scherm.blit(luckcoins_tekst, (paneel_rect.x + 18, paneel_rect.y + 342))
+    scherm.blit(luckshop_pagina_tekst, (paneel_rect.x + 18, paneel_rect.y + 362))
+    scherm.blit(luckshop_resultaat, (paneel_rect.x + 18, paneel_rect.y + 382))
 
     if laatste_gouden_kaart:
         goud_resultaat_regel = f"Goud: {laatste_gouden_kaart['titel']}"
@@ -1176,8 +1355,8 @@ def teken_kaart_paneel(
         goud_uitleg_regel = "Voltooi een normaal deck voor 1 gouden kaart."
     goud_resultaat = font_klein.render(maak_passende_tekst(font_klein, goud_resultaat_regel, paneel_breedte), True, KNOP_RAND)
     goud_uitleg = font_klein.render(maak_passende_tekst(font_klein, goud_uitleg_regel, paneel_breedte), True, TEKST_KLEUR if laatste_gouden_kaart else SUBTEKST_KLEUR)
-    scherm.blit(goud_resultaat, (paneel_rect.x + 18, paneel_rect.y + 384))
-    scherm.blit(goud_uitleg, (paneel_rect.x + 18, paneel_rect.y + 404))
+    scherm.blit(goud_resultaat, (paneel_rect.x + 18, paneel_rect.y + 392))
+    scherm.blit(goud_uitleg, (paneel_rect.x + 18, paneel_rect.y + 410))
 
 
 def teken_deck_grid(scherm, deck_rect, titel, kaarten, getrokken_sleutels, font, font_klein):
@@ -1314,6 +1493,10 @@ def speel():
     luckshop_knop_rect = pygame.Rect(kaart_paneel_rect.x + 20, kaart_paneel_rect.y + 288, kaart_paneel_rect.width - 40, 46)
     kaart_overlay_rect = pygame.Rect(70, 36, 820, 468)
     sluit_kaart_overlay_rect = pygame.Rect(kaart_overlay_rect.right - 108, kaart_overlay_rect.y + 16, 88, 30)
+    luckshop_overlay_rect = pygame.Rect(70, 36, 820, 468)
+    sluit_luckshop_overlay_rect = pygame.Rect(luckshop_overlay_rect.right - 108, luckshop_overlay_rect.y + 16, 88, 30)
+    luckshop_vorige_pagina_knop = pygame.Rect(luckshop_overlay_rect.right - 196, luckshop_overlay_rect.y + 16, 36, 30)
+    luckshop_volgende_pagina_knop = pygame.Rect(luckshop_overlay_rect.right - 152, luckshop_overlay_rect.y + 16, 36, 30)
     echte_reset_knop = pygame.Rect(18, 18, 122, 34)
     echte_reset_overlay_rect = pygame.Rect(245, 150, 470, 210)
     echte_reset_ja_rect = pygame.Rect(echte_reset_overlay_rect.x + 42, echte_reset_overlay_rect.bottom - 70, 170, 46)
@@ -1331,6 +1514,7 @@ def speel():
         klik_kracht,
         auto_spoken,
         shop_pagina,
+        luckshop_pagina,
         multiplier,
         luckcoins,
         klik_animatie,
@@ -1346,15 +1530,18 @@ def speel():
         laatste_kaart_resultaat,
         laatste_gouden_kaart,
         laatste_gouden_kaart_resultaat,
+        laatste_luckshop_resultaat,
         getrokken_kaart_sleutels,
         getrokken_gouden_kaart_sleutels,
         kaart_overzicht_open,
         opslaan_timer,
     ) = pak_spelvariabelen(speltoestand)
     echte_reset_open = False
-    laatste_luckshop_resultaat = f"Ruil {format_tienden(LUCKSHOP_KOSTEN)} luckcoin voor punten x{LUCKSHOP_FACTOR}"
+    luckshop_open = False
     upgrades = maak_upgrades()
+    luckshop_upgrades = maak_luckshop_upgrades()
     vakken_per_pagina = len(shop_vakken)
+    luckshop_vakken = maak_luckshop_vakken(luckshop_overlay_rect)
 
     def sla_huidige_voortgang_op():
         """Bewaar de huidige voortgang van het spel."""
@@ -1363,6 +1550,7 @@ def speel():
             klik_kracht,
             auto_spoken,
             shop_pagina,
+            luckshop_pagina,
             multiplier,
             luckcoins,
             auto_punten_buffer,
@@ -1372,6 +1560,7 @@ def speel():
             laatste_kaart_resultaat,
             laatste_gouden_kaart,
             laatste_gouden_kaart_resultaat,
+            laatste_luckshop_resultaat,
             getrokken_kaart_sleutels,
             getrokken_gouden_kaart_sleutels,
             kaarten_stapel,
@@ -1390,6 +1579,7 @@ def speel():
         luckcoins, luckcoin_buffer = verwerk_luckcoins(luckcoins, luckcoin_buffer, delta_ms)
         if punten > punten_voor_auto:
             shop_pagina = kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina)
+        luckshop_pagina = kies_volgende_luckshop_pagina(luckcoins, luckshop_pagina, luckshop_upgrades, len(luckshop_vakken))
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -1409,6 +1599,7 @@ def speel():
                             klik_kracht,
                             auto_spoken,
                             shop_pagina,
+                            luckshop_pagina,
                             multiplier,
                             luckcoins,
                             klik_animatie,
@@ -1424,17 +1615,37 @@ def speel():
                             laatste_kaart_resultaat,
                             laatste_gouden_kaart,
                             laatste_gouden_kaart_resultaat,
+                            laatste_luckshop_resultaat,
                             getrokken_kaart_sleutels,
                             getrokken_gouden_kaart_sleutels,
                             kaart_overzicht_open,
                             opslaan_timer,
                         ) = pak_spelvariabelen(speltoestand)
                         upgrades = maak_upgrades()
+                        luckshop_upgrades = maak_luckshop_upgrades()
                         echte_reset_open = False
-                        laatste_luckshop_resultaat = f"Ruil {format_tienden(LUCKSHOP_KOSTEN)} luckcoin voor punten x{LUCKSHOP_FACTOR}"
+                        luckshop_open = False
                         sla_huidige_voortgang_op()
                     elif echte_reset_nee_rect.collidepoint(muis_pos):
                         echte_reset_open = False
+                    continue
+
+                if luckshop_open:
+                    if sluit_luckshop_overlay_rect.collidepoint(muis_pos) or luckshop_knop_rect.collidepoint(muis_pos):
+                        luckshop_open = False
+                    elif luckshop_vorige_pagina_knop.collidepoint(muis_pos) and luckshop_pagina > 0:
+                        luckshop_pagina -= 1
+                    elif luckshop_volgende_pagina_knop.collidepoint(muis_pos):
+                        luckshop_pagina += 1
+                    else:
+                        zichtbare_luckshop_upgrades = pak_luckshop_upgrades(luckshop_upgrades, luckshop_pagina, len(luckshop_vakken))
+                        for upgrade, rect in zip(zichtbare_luckshop_upgrades, luckshop_vakken):
+                            if rect.collidepoint(muis_pos):
+                                punten, luckcoins, laatste_luckshop_resultaat = koop_luckshop_bonus(punten, luckcoins, upgrade)
+                                if laatste_luckshop_resultaat.endswith("gekocht!"):
+                                    shop_pagina = kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina)
+                                    luckshop_pagina = kies_volgende_luckshop_pagina(luckcoins, luckshop_pagina, luckshop_upgrades, len(luckshop_vakken))
+                                break
                     continue
 
                 if kaart_overzicht_open:
@@ -1513,11 +1724,8 @@ def speel():
                 elif kaart_overzicht_knop_rect.collidepoint(muis_pos):
                     kaart_overzicht_open = True
 
-                # Koop normale punten met luckcoins.
                 elif luckshop_knop_rect.collidepoint(muis_pos):
-                    punten, luckcoins, laatste_luckshop_resultaat = koop_luckshop_bonus(punten, luckcoins)
-                    if laatste_luckshop_resultaat.endswith("gekocht!"):
-                        shop_pagina = kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina)
+                    luckshop_open = True
 
                 # Ga naar de vorige shop-pagina.
                 elif vorige_pagina_knop.collidepoint(muis_pos) and shop_pagina > 0:
@@ -1565,6 +1773,7 @@ def speel():
             luckshop_knop_rect,
             multiplier,
             luckcoins,
+            luckshop_pagina,
             laatste_kaart,
             laatste_kaart_resultaat,
             laatste_gouden_kaart,
@@ -1620,6 +1829,22 @@ def speel():
                 getrokken_kaart_sleutels,
                 gouden_kaarten,
                 getrokken_gouden_kaart_sleutels,
+                font_klein,
+                font_shop,
+            )
+
+        if luckshop_open:
+            teken_luckshop_overzicht(
+                scherm,
+                luckshop_overlay_rect,
+                sluit_luckshop_overlay_rect,
+                luckshop_vorige_pagina_knop,
+                luckshop_volgende_pagina_knop,
+                luckshop_upgrades,
+                luckshop_pagina,
+                luckshop_vakken,
+                luckcoins,
+                laatste_luckshop_resultaat,
                 font_klein,
                 font_shop,
             )

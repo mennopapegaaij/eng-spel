@@ -19,7 +19,9 @@ Een simpel clicker-spel in Python met `pygame`.
 - Gouden kaarten geven dezelfde soort nummer-bonussen, maar dan voor je `luckcoins`
 - `Luckcoins` beginnen bij `0`
 - Je krijgt vanzelf elke seconde `0.1` luckcoin erbij
-- In de `Luckshop` kun je `1.0` luckcoin ruilen voor `punten x100`
+- De `Luckshop` is nu oneindig groot met bladzijdes
+- De eerste luckshop-koop is nu `1000.0` luckcoins en daarna wordt alles steeds duurder
+- In de `Luckshop` kun je luckcoins ruilen voor heel veel normale punten
 - Je voortgang wordt automatisch opgeslagen in `spelopslag.json`
 
 ## Starten
@@ -35,7 +37,7 @@ python main.py
 - Linkermuisknop op een upgrade = upgrade kopen
 - Linkermuisknop op `Trek kaart` = een gratis bonuskaart pakken als je een nieuwe multiplier-milestone hebt gehaald
 - Linkermuisknop op `Bekijk kaarten` = je hele kaartoverzicht openen
-- Linkermuisknop op `Luckshop` = `1.0` luckcoin ruilen voor `punten x100`
+- Linkermuisknop op `Luckshop` = de oneindige luckshop openen en luckcoins uitgeven
 - De shop springt vanzelf naar de verste bladzijde waar je iets kunt betalen
 - Linkermuisknop op `Reset` = opnieuw beginnen; binnen 1 ronde wordt de bonus steeds duurder, maar na reset begint dat weer opnieuw
 - Linkermuisknop op `Echte reset` linksboven = alles wissen en weer echt vanaf 0 beginnen
