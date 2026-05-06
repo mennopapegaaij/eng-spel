@@ -36,4 +36,5 @@ python main.py
 - Linkermuisknop op `Bekijk kaarten` = je hele kaartoverzicht openen
 - De shop springt vanzelf naar de verste bladzijde waar je iets kunt betalen
 - Linkermuisknop op `Reset` = opnieuw beginnen; binnen 1 ronde wordt de bonus steeds duurder, maar na reset begint dat weer opnieuw
+- Linkermuisknop op `Echte reset` linksboven = alles wissen en weer echt vanaf 0 beginnen
 - Als het normale deck leeg is, krijg je eerst 1 gouden kaart en daarna begint het normale deck opnieuw

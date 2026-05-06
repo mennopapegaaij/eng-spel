@@ -320,6 +320,44 @@ def sla_spel_op(
         print(f"Opslaan mislukte: {fout}")
 
 
+def wis_opslagbestand():
+    """Wis het opslagbestand voor een echte nieuwe start."""
+    try:
+        if OPSLAAN_BESTAND.exists():
+            OPSLAAN_BESTAND.unlink()
+    except OSError as fout:
+        print(f"Opslag wissen mislukte: {fout}")
+
+
+def pak_spelvariabelen(speltoestand):
+    """Haal alle spelwaarden uit 1 speltoestand."""
+    return (
+        speltoestand["punten"],
+        speltoestand["klik_kracht"],
+        speltoestand["auto_spoken"],
+        speltoestand["shop_pagina"],
+        speltoestand["multiplier"],
+        speltoestand["luckcoins"],
+        speltoestand["klik_animatie"],
+        speltoestand["teller"],
+        speltoestand["auto_punten_buffer"],
+        speltoestand["luckcoin_buffer"],
+        speltoestand["kaarten"],
+        speltoestand["kaarten_stapel"],
+        speltoestand["gouden_kaarten"],
+        speltoestand["gouden_kaarten_stapel"],
+        speltoestand["kaart_trekkingen"],
+        speltoestand["laatste_kaart"],
+        speltoestand["laatste_kaart_resultaat"],
+        speltoestand["laatste_gouden_kaart"],
+        speltoestand["laatste_gouden_kaart_resultaat"],
+        speltoestand["getrokken_kaart_sleutels"],
+        speltoestand["getrokken_gouden_kaart_sleutels"],
+        speltoestand["kaart_overzicht_open"],
+        speltoestand["opslaan_timer"],
+    )
+
+
 def teken_achtergrond(scherm, teller):
     """Teken de donkere lucht, maan en mist."""
     scherm.fill(ACHTERGROND)
@@ -955,6 +993,53 @@ def teken_reset_knop(scherm, rect, punten, multiplier, font, font_klein):
     )
 
 
+def teken_echte_reset_knop(scherm, rect, font):
+    """Teken de knop die alles wist."""
+    pygame.draw.rect(scherm, ROOD, rect, border_radius=12)
+    pygame.draw.rect(scherm, TEKST_KLEUR, rect, 2, border_radius=12)
+
+    tekst = font.render("Echte reset", True, TEKST_KLEUR)
+    scherm.blit(
+        tekst,
+        (rect.x + rect.width // 2 - tekst.get_width() // 2, rect.y + 7),
+    )
+
+
+def teken_echte_reset_waarschuwing(scherm, overlay_rect, ja_rect, nee_rect, font, font_klein):
+    """Teken een waarschuwing voordat alles wordt gewist."""
+    dim = pygame.Surface((SCHERM_BREEDTE, SCHERM_HOOGTE), pygame.SRCALPHA)
+    dim.fill((0, 0, 0, 170))
+    scherm.blit(dim, (0, 0))
+
+    pygame.draw.rect(scherm, PANEEL_KLEUR, overlay_rect, border_radius=24)
+    pygame.draw.rect(scherm, ROOD, overlay_rect, 4, border_radius=24)
+
+    titel = font.render("Weet je het zeker?", True, TEKST_KLEUR)
+    regel1 = font_klein.render("Dan begin je echt helemaal opnieuw.", True, GEEL)
+    regel2 = font_klein.render("Punten, multiplier, kaarten en luckcoins", True, SUBTEKST_KLEUR)
+    regel3 = font_klein.render("worden dan helemaal gewist.", True, SUBTEKST_KLEUR)
+    scherm.blit(titel, (overlay_rect.x + 36, overlay_rect.y + 24))
+    scherm.blit(regel1, (overlay_rect.x + 36, overlay_rect.y + 74))
+    scherm.blit(regel2, (overlay_rect.x + 36, overlay_rect.y + 104))
+    scherm.blit(regel3, (overlay_rect.x + 36, overlay_rect.y + 128))
+
+    pygame.draw.rect(scherm, ROOD, ja_rect, border_radius=12)
+    pygame.draw.rect(scherm, TEKST_KLEUR, ja_rect, 2, border_radius=12)
+    ja_tekst = font_klein.render("Ja, wis alles", True, TEKST_KLEUR)
+    scherm.blit(
+        ja_tekst,
+        (ja_rect.x + ja_rect.width // 2 - ja_tekst.get_width() // 2, ja_rect.y + 11),
+    )
+
+    pygame.draw.rect(scherm, KNOP_KLEUR, nee_rect, border_radius=12)
+    pygame.draw.rect(scherm, KNOP_RAND, nee_rect, 2, border_radius=12)
+    nee_tekst = font_klein.render("Nee", True, TEKST_KLEUR)
+    scherm.blit(
+        nee_tekst,
+        (nee_rect.x + nee_rect.width // 2 - nee_tekst.get_width() // 2, nee_rect.y + 11),
+    )
+
+
 def teken_kaart_paneel(
     scherm,
     paneel_rect,
@@ -1194,6 +1279,10 @@ def speel():
     kaart_overzicht_knop_rect = pygame.Rect(kaart_paneel_rect.x + 20, kaart_paneel_rect.y + 252, kaart_paneel_rect.width - 40, 30)
     kaart_overlay_rect = pygame.Rect(70, 36, 820, 468)
     sluit_kaart_overlay_rect = pygame.Rect(kaart_overlay_rect.right - 108, kaart_overlay_rect.y + 16, 88, 30)
+    echte_reset_knop = pygame.Rect(18, 18, 122, 34)
+    echte_reset_overlay_rect = pygame.Rect(245, 150, 470, 210)
+    echte_reset_ja_rect = pygame.Rect(echte_reset_overlay_rect.x + 42, echte_reset_overlay_rect.bottom - 70, 170, 46)
+    echte_reset_nee_rect = pygame.Rect(echte_reset_overlay_rect.right - 212, echte_reset_overlay_rect.bottom - 70, 170, 46)
     paneel_rect = pygame.Rect(620, 30, 300, 480)
     shop_vakken = maak_shop_vakken(paneel_rect)
     vorige_pagina_knop = pygame.Rect(paneel_rect.x + 176, paneel_rect.y + 198, 32, 28)
@@ -1202,31 +1291,56 @@ def speel():
 
     # Spelvariabelen.
     speltoestand = laad_speltoestand()
-    punten = speltoestand["punten"]
-    klik_kracht = speltoestand["klik_kracht"]
-    auto_spoken = speltoestand["auto_spoken"]
-    shop_pagina = speltoestand["shop_pagina"]
-    multiplier = speltoestand["multiplier"]
-    luckcoins = speltoestand["luckcoins"]
-    klik_animatie = speltoestand["klik_animatie"]
-    teller = speltoestand["teller"]
-    auto_punten_buffer = speltoestand["auto_punten_buffer"]
-    luckcoin_buffer = speltoestand["luckcoin_buffer"]
-    kaarten = speltoestand["kaarten"]
-    kaarten_stapel = speltoestand["kaarten_stapel"]
-    gouden_kaarten = speltoestand["gouden_kaarten"]
-    gouden_kaarten_stapel = speltoestand["gouden_kaarten_stapel"]
-    kaart_trekkingen = speltoestand["kaart_trekkingen"]
-    laatste_kaart = speltoestand["laatste_kaart"]
-    laatste_kaart_resultaat = speltoestand["laatste_kaart_resultaat"]
-    laatste_gouden_kaart = speltoestand["laatste_gouden_kaart"]
-    laatste_gouden_kaart_resultaat = speltoestand["laatste_gouden_kaart_resultaat"]
-    getrokken_kaart_sleutels = speltoestand["getrokken_kaart_sleutels"]
-    getrokken_gouden_kaart_sleutels = speltoestand["getrokken_gouden_kaart_sleutels"]
-    kaart_overzicht_open = speltoestand["kaart_overzicht_open"]
-    opslaan_timer = speltoestand["opslaan_timer"]
+    (
+        punten,
+        klik_kracht,
+        auto_spoken,
+        shop_pagina,
+        multiplier,
+        luckcoins,
+        klik_animatie,
+        teller,
+        auto_punten_buffer,
+        luckcoin_buffer,
+        kaarten,
+        kaarten_stapel,
+        gouden_kaarten,
+        gouden_kaarten_stapel,
+        kaart_trekkingen,
+        laatste_kaart,
+        laatste_kaart_resultaat,
+        laatste_gouden_kaart,
+        laatste_gouden_kaart_resultaat,
+        getrokken_kaart_sleutels,
+        getrokken_gouden_kaart_sleutels,
+        kaart_overzicht_open,
+        opslaan_timer,
+    ) = pak_spelvariabelen(speltoestand)
+    echte_reset_open = False
     upgrades = maak_upgrades()
     vakken_per_pagina = len(shop_vakken)
+
+    def sla_huidige_voortgang_op():
+        """Bewaar de huidige voortgang van het spel."""
+        sla_spel_op(
+            punten,
+            klik_kracht,
+            auto_spoken,
+            shop_pagina,
+            multiplier,
+            luckcoins,
+            auto_punten_buffer,
+            luckcoin_buffer,
+            kaart_trekkingen,
+            laatste_kaart,
+            laatste_kaart_resultaat,
+            laatste_gouden_kaart,
+            laatste_gouden_kaart_resultaat,
+            getrokken_kaart_sleutels,
+            getrokken_gouden_kaart_sleutels,
+            kaarten_stapel,
+            gouden_kaarten_stapel,
+        )
 
     while True:
         delta_ms = klok.tick(FPS)
@@ -1243,34 +1357,56 @@ def speel():
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                sla_spel_op(
-                    punten,
-                    klik_kracht,
-                    auto_spoken,
-                    shop_pagina,
-                    multiplier,
-                    luckcoins,
-                    auto_punten_buffer,
-                    luckcoin_buffer,
-                    kaart_trekkingen,
-                    laatste_kaart,
-                    laatste_kaart_resultaat,
-                    laatste_gouden_kaart,
-                    laatste_gouden_kaart_resultaat,
-                    getrokken_kaart_sleutels,
-                    getrokken_gouden_kaart_sleutels,
-                    kaarten_stapel,
-                    gouden_kaarten_stapel,
-                )
+                sla_huidige_voortgang_op()
                 pygame.quit()
                 sys.exit()
 
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 muis_pos = event.pos
 
+                if echte_reset_open:
+                    if echte_reset_ja_rect.collidepoint(muis_pos):
+                        wis_opslagbestand()
+                        speltoestand = maak_nieuwe_speltoestand()
+                        (
+                            punten,
+                            klik_kracht,
+                            auto_spoken,
+                            shop_pagina,
+                            multiplier,
+                            luckcoins,
+                            klik_animatie,
+                            teller,
+                            auto_punten_buffer,
+                            luckcoin_buffer,
+                            kaarten,
+                            kaarten_stapel,
+                            gouden_kaarten,
+                            gouden_kaarten_stapel,
+                            kaart_trekkingen,
+                            laatste_kaart,
+                            laatste_kaart_resultaat,
+                            laatste_gouden_kaart,
+                            laatste_gouden_kaart_resultaat,
+                            getrokken_kaart_sleutels,
+                            getrokken_gouden_kaart_sleutels,
+                            kaart_overzicht_open,
+                            opslaan_timer,
+                        ) = pak_spelvariabelen(speltoestand)
+                        upgrades = maak_upgrades()
+                        echte_reset_open = False
+                        sla_huidige_voortgang_op()
+                    elif echte_reset_nee_rect.collidepoint(muis_pos):
+                        echte_reset_open = False
+                    continue
+
                 if kaart_overzicht_open:
                     if sluit_kaart_overlay_rect.collidepoint(muis_pos) or kaart_overzicht_knop_rect.collidepoint(muis_pos):
                         kaart_overzicht_open = False
+                    continue
+
+                if echte_reset_knop.collidepoint(muis_pos):
+                    echte_reset_open = True
                     continue
 
                 # Klik op de smiley voor punten.
@@ -1364,25 +1500,7 @@ def speel():
             klik_animatie -= 1
 
         if opslaan_timer >= AUTO_OPSLAAN_MS:
-            sla_spel_op(
-                punten,
-                klik_kracht,
-                auto_spoken,
-                shop_pagina,
-                multiplier,
-                luckcoins,
-                auto_punten_buffer,
-                luckcoin_buffer,
-                kaart_trekkingen,
-                laatste_kaart,
-                laatste_kaart_resultaat,
-                laatste_gouden_kaart,
-                laatste_gouden_kaart_resultaat,
-                getrokken_kaart_sleutels,
-                getrokken_gouden_kaart_sleutels,
-                kaarten_stapel,
-                gouden_kaarten_stapel,
-            )
+            sla_huidige_voortgang_op()
             opslaan_timer = 0
 
         teken_achtergrond(scherm, teller)
@@ -1390,8 +1508,9 @@ def speel():
         # Titel en uitleg linksboven.
         titel = font_groot.render("Eng Spel", True, TEKST_KLEUR)
         uitleg = font_klein.render("Klik op de enge smiley en verzamel punten!", True, SUBTEKST_KLEUR)
-        scherm.blit(titel, (40, 28))
-        scherm.blit(uitleg, (42, 76))
+        teken_echte_reset_knop(scherm, echte_reset_knop, font_shop)
+        scherm.blit(titel, (160, 20))
+        scherm.blit(uitleg, (162, 68))
 
         # Teken de smiley.
         teken_poppetje(scherm, poppetje_rect, teller, klik_animatie, punten)
@@ -1458,6 +1577,16 @@ def speel():
                 getrokken_gouden_kaart_sleutels,
                 font_klein,
                 font_shop,
+            )
+
+        if echte_reset_open:
+            teken_echte_reset_waarschuwing(
+                scherm,
+                echte_reset_overlay_rect,
+                echte_reset_ja_rect,
+                echte_reset_nee_rect,
+                font_middel,
+                font_klein,
             )
 
         pygame.display.flip()
