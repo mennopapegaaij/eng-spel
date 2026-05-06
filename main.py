@@ -218,15 +218,15 @@ def maak_kaart_sleutel(kaart):
 def beschrijf_kaart(nummer, goud=False):
     """Geef de uitleg van een nummerkaart."""
     alles_factoren = {1: 10, 2: 9, 3: 8, 4: 7, 5: 6, 6: 5, 7: 5, 8: 4, 11: 20}
-    doel = "Luckcoins" if goud else "Alles"
+    doel = "Luckcoins" if goud else "Alles + resetbonus"
     if nummer in alles_factoren:
         return f"{doel} x{alles_factoren[nummer]}"
     if nummer == 9:
-        return "Luckcoins x11" if goud else "Multiplier x11"
+        return "Luckcoins x11" if goud else "Resetbonus x11"
     if nummer == 10:
         return "Luckcoins x30" if goud else "Geld x30"
     if nummer == 12:
-        return "Alle 4x kaart 12 = luckcoins x100000" if goud else "Alle 4x kaart 12 = alles x100000"
+        return "Alle 4x kaart 12 = luckcoins x100000" if goud else "Alle 4x kaart 12 = alles + resetbonus x100000"
     return "Geen bonus"
 
 
@@ -289,6 +289,7 @@ def maak_nieuwe_wereldtoestand(wereld_nummer):
         "shop_pagina": 0,
         "luckshop_pagina": 0,
         "multiplier": 10,
+        "reset_bonus_factor": 1,
         "luckcoins": 0,
         "auto_punten_buffer": 0,
         "luckcoin_buffer": 0,
@@ -323,6 +324,7 @@ def laad_wereldtoestand_uit_data(data, wereld_nummer):
     wereldtoestand["shop_pagina"] = max(0, int(data.get("shop_pagina", wereldtoestand["shop_pagina"])))
     wereldtoestand["luckshop_pagina"] = max(0, int(data.get("luckshop_pagina", wereldtoestand["luckshop_pagina"])))
     wereldtoestand["multiplier"] = max(1, int(data.get("multiplier", wereldtoestand["multiplier"])))
+    wereldtoestand["reset_bonus_factor"] = max(1, int(data.get("reset_bonus_factor", wereldtoestand["reset_bonus_factor"])))
     wereldtoestand["luckcoins"] = max(0, int(data.get("luckcoins", wereldtoestand["luckcoins"])))
     wereldtoestand["auto_punten_buffer"] = max(0, int(data.get("auto_punten_buffer", 0)))
     wereldtoestand["luckcoin_buffer"] = max(0, int(data.get("luckcoin_buffer", 0)))
@@ -357,6 +359,7 @@ def wereld_naar_bewaar_data(wereldtoestand):
         "shop_pagina": int(wereldtoestand["shop_pagina"]),
         "luckshop_pagina": int(wereldtoestand["luckshop_pagina"]),
         "multiplier": int(wereldtoestand["multiplier"]),
+        "reset_bonus_factor": int(wereldtoestand["reset_bonus_factor"]),
         "luckcoins": int(wereldtoestand["luckcoins"]),
         "auto_punten_buffer": int(wereldtoestand["auto_punten_buffer"]),
         "luckcoin_buffer": int(wereldtoestand["luckcoin_buffer"]),
@@ -443,6 +446,7 @@ def pak_wereldvariabelen(wereldtoestand):
         wereldtoestand["shop_pagina"],
         wereldtoestand["luckshop_pagina"],
         wereldtoestand["multiplier"],
+        wereldtoestand["reset_bonus_factor"],
         wereldtoestand["luckcoins"],
         wereldtoestand["auto_punten_buffer"],
         wereldtoestand["luckcoin_buffer"],
@@ -830,6 +834,12 @@ def bereken_reset_bonus(punten):
     hele_punten = max(0, int(punten)) // 10
     stap_budget = (hele_punten * 2) // 1000
     return max(0, (math.isqrt(1 + 4 * stap_budget) - 1) // 2)
+
+
+def bereken_totale_reset_bonus(punten, reset_bonus_factor):
+    """Geef de echte resetbonus terug, met kaart-bonus erbij."""
+    basis_bonus = bereken_reset_bonus(punten)
+    return basis_bonus * max(1, int(reset_bonus_factor))
 
 
 def bereken_reset_drempel(punten):
@@ -1300,7 +1310,7 @@ def trek_kaart(kaarten_stapel):
     return kaarten_stapel.pop()
 
 
-def pas_kaart_toe(kaart, punten, klik_kracht, auto_spoken, multiplier, luckcoins, getrokken_sleutels):
+def pas_kaart_toe(kaart, punten, klik_kracht, auto_spoken, multiplier, reset_bonus_factor, luckcoins, getrokken_sleutels):
     """Geef de kaartbonus aan je spelwaarden."""
     nummer = kaart["nummer"]
     alles_factoren = {1: 10, 2: 9, 3: 8, 4: 7, 5: 6, 6: 5, 7: 5, 8: 4, 11: 20}
@@ -1309,22 +1319,22 @@ def pas_kaart_toe(kaart, punten, klik_kracht, auto_spoken, multiplier, luckcoins
     if is_gouden_kaart:
         if nummer in alles_factoren:
             factor = alles_factoren[nummer]
-            return punten, klik_kracht, auto_spoken, multiplier, luckcoins * factor, f"Luckcoins x{factor}!"
+            return punten, klik_kracht, auto_spoken, multiplier, reset_bonus_factor, luckcoins * factor, f"Luckcoins x{factor}!"
 
         if nummer == 9:
-            return punten, klik_kracht, auto_spoken, multiplier, luckcoins * 11, "Luckcoins x11!"
+            return punten, klik_kracht, auto_spoken, multiplier, reset_bonus_factor, luckcoins * 11, "Luckcoins x11!"
 
         if nummer == 10:
-            return punten, klik_kracht, auto_spoken, multiplier, luckcoins * 30, "Luckcoins x30!"
+            return punten, klik_kracht, auto_spoken, multiplier, reset_bonus_factor, luckcoins * 30, "Luckcoins x30!"
 
         if nummer == 12:
             twaalf_getrokken = tel_getrokken_kaarten_van_nummer(getrokken_sleutels, 12)
             if twaalf_getrokken >= 4:
                 factor = 100000
-                return punten, klik_kracht, auto_spoken, multiplier, luckcoins * factor, "Alle gouden kaart 12 compleet: luckcoins x100000!"
-            return punten, klik_kracht, auto_spoken, multiplier, luckcoins, f"Gouden kaart 12: {twaalf_getrokken}/4 verzameld"
+                return punten, klik_kracht, auto_spoken, multiplier, reset_bonus_factor, luckcoins * factor, "Alle gouden kaart 12 compleet: luckcoins x100000!"
+            return punten, klik_kracht, auto_spoken, multiplier, reset_bonus_factor, luckcoins, f"Gouden kaart 12: {twaalf_getrokken}/4 verzameld"
 
-        return punten, klik_kracht, auto_spoken, multiplier, luckcoins, "Geen bonus"
+        return punten, klik_kracht, auto_spoken, multiplier, reset_bonus_factor, luckcoins, "Geen bonus"
 
     if nummer in alles_factoren:
         factor = alles_factoren[nummer]
@@ -1332,16 +1342,17 @@ def pas_kaart_toe(kaart, punten, klik_kracht, auto_spoken, multiplier, luckcoins
             punten * factor,
             klik_kracht * factor,
             auto_spoken * factor,
-            multiplier * factor,
+            multiplier,
+            reset_bonus_factor * factor,
             luckcoins,
-            f"Alles x{factor}!",
+            f"Alles en resetbonus x{factor}!",
         )
 
     if nummer == 9:
-        return punten, klik_kracht, auto_spoken, multiplier * 11, luckcoins, "Multiplier x11!"
+        return punten, klik_kracht, auto_spoken, multiplier, reset_bonus_factor * 11, luckcoins, "Resetbonus x11!"
 
     if nummer == 10:
-        return punten * 30, klik_kracht, auto_spoken, multiplier, luckcoins, "Geld x30!"
+        return punten * 30, klik_kracht, auto_spoken, multiplier, reset_bonus_factor, luckcoins, "Geld x30!"
 
     if nummer == 12:
         twaalf_getrokken = tel_getrokken_kaarten_van_nummer(getrokken_sleutels, 12)
@@ -1351,13 +1362,14 @@ def pas_kaart_toe(kaart, punten, klik_kracht, auto_spoken, multiplier, luckcoins
                 punten * factor,
                 klik_kracht * factor,
                 auto_spoken * factor,
-                multiplier * factor,
+                multiplier,
+                reset_bonus_factor * factor,
                 luckcoins,
-                "Alle kaart 12 compleet: alles x100000!",
+                "Alle kaart 12 compleet: alles en resetbonus x100000!",
             )
-        return punten, klik_kracht, auto_spoken, multiplier, luckcoins, f"Kaart 12: {twaalf_getrokken}/4 verzameld"
+        return punten, klik_kracht, auto_spoken, multiplier, reset_bonus_factor, luckcoins, f"Kaart 12: {twaalf_getrokken}/4 verzameld"
 
-    return punten, klik_kracht, auto_spoken, multiplier, luckcoins, "Geen bonus"
+    return punten, klik_kracht, auto_spoken, multiplier, reset_bonus_factor, luckcoins, "Geen bonus"
 
 
 def koop_luckshop_bonus(punten, luckcoins, upgrade):
@@ -1386,9 +1398,9 @@ def teken_pagina_knop(scherm, rect, tekst, actief, font):
     )
 
 
-def teken_reset_knop(scherm, rect, punten, multiplier, font, font_klein):
+def teken_reset_knop(scherm, rect, punten, multiplier, reset_bonus_factor, font, font_klein):
     """Teken de resetknop met de bonus die je nu kunt verdienen."""
-    reset_bonus = bereken_reset_bonus(punten)
+    reset_bonus = bereken_totale_reset_bonus(punten, reset_bonus_factor)
     reset_drempel = bereken_reset_drempel(punten)
     knop_kleur = KNOP_KLEUR if reset_bonus > 0 else KNOP_UIT
     rand_kleur = ROOD if reset_bonus > 0 else PANEEL_RAND
@@ -1921,6 +1933,7 @@ def speel():
     shop_pagina = 0
     luckshop_pagina = 0
     multiplier = 10
+    reset_bonus_factor = 1
     luckcoins = 0
     auto_punten_buffer = 0
     luckcoin_buffer = 0
@@ -1963,6 +1976,7 @@ def speel():
             "shop_pagina": shop_pagina,
             "luckshop_pagina": luckshop_pagina,
             "multiplier": multiplier,
+            "reset_bonus_factor": reset_bonus_factor,
             "luckcoins": luckcoins,
             "auto_punten_buffer": auto_punten_buffer,
             "luckcoin_buffer": luckcoin_buffer,
@@ -1983,7 +1997,7 @@ def speel():
     def laad_actieve_wereld():
         """Laad de actieve wereld in de losse spelvariabelen."""
         nonlocal wereld_nummer, punten, klik_kracht, auto_spoken, shop_pagina, luckshop_pagina
-        nonlocal multiplier, luckcoins, auto_punten_buffer, luckcoin_buffer, kaarten, kaarten_stapel
+        nonlocal multiplier, reset_bonus_factor, luckcoins, auto_punten_buffer, luckcoin_buffer, kaarten, kaarten_stapel
         nonlocal gouden_kaarten, gouden_kaarten_stapel, kaart_trekkingen, laatste_kaart
         nonlocal laatste_kaart_resultaat, laatste_gouden_kaart, laatste_gouden_kaart_resultaat
         nonlocal laatste_luckshop_resultaat, getrokken_kaart_sleutels, getrokken_gouden_kaart_sleutels
@@ -1997,6 +2011,7 @@ def speel():
             shop_pagina,
             luckshop_pagina,
             multiplier,
+            reset_bonus_factor,
             luckcoins,
             auto_punten_buffer,
             luckcoin_buffer,
@@ -2168,12 +2183,13 @@ def speel():
 
                 # Reset het spel en maak de multiplier groter.
                 elif reset_knop.collidepoint(muis_pos):
-                    reset_bonus = bereken_reset_bonus(punten)
+                    reset_bonus = bereken_totale_reset_bonus(punten, reset_bonus_factor)
                     if reset_bonus <= 0:
                         continue
 
                     multiplier += reset_bonus
                     punten, klik_kracht, auto_spoken, shop_pagina = reset_speltoestand()
+                    reset_bonus_factor = 1
                     klik_animatie = 0
                     auto_punten_buffer = 0
 
@@ -2191,12 +2207,13 @@ def speel():
                         continue
 
                     getrokken_kaart_sleutels.add(maak_kaart_sleutel(laatste_kaart))
-                    punten, klik_kracht, auto_spoken, multiplier, luckcoins, laatste_kaart_resultaat = pas_kaart_toe(
+                    punten, klik_kracht, auto_spoken, multiplier, reset_bonus_factor, luckcoins, laatste_kaart_resultaat = pas_kaart_toe(
                         laatste_kaart,
                         punten,
                         klik_kracht,
                         auto_spoken,
                         multiplier,
+                        reset_bonus_factor,
                         luckcoins,
                         getrokken_kaart_sleutels,
                     )
@@ -2206,12 +2223,13 @@ def speel():
                         laatste_gouden_kaart = trek_kaart(gouden_kaarten_stapel)
                         if laatste_gouden_kaart is not None:
                             getrokken_gouden_kaart_sleutels.add(maak_kaart_sleutel(laatste_gouden_kaart))
-                            punten, klik_kracht, auto_spoken, multiplier, luckcoins, laatste_gouden_kaart_resultaat = pas_kaart_toe(
+                            punten, klik_kracht, auto_spoken, multiplier, reset_bonus_factor, luckcoins, laatste_gouden_kaart_resultaat = pas_kaart_toe(
                                 laatste_gouden_kaart,
                                 punten,
                                 klik_kracht,
                                 auto_spoken,
                                 multiplier,
+                                reset_bonus_factor,
                                 luckcoins,
                                 getrokken_gouden_kaart_sleutels,
                             )
@@ -2294,7 +2312,7 @@ def speel():
             font_klein,
             font_shop,
         )
-        teken_reset_knop(scherm, reset_knop, punten, multiplier, font_klein, font_shop)
+        teken_reset_knop(scherm, reset_knop, punten, multiplier, reset_bonus_factor, font_klein, font_shop)
 
         # Teken het informatiepaneel.
         teken_paneel(scherm, paneel_rect)
