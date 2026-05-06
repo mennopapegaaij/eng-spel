@@ -526,10 +526,54 @@ def schat_grote_int(waarde, eerste_cijfers=3):
     return cijfers, str(begin_getal).zfill(eerste_cijfers)
 
 
+def maak_letter_suffix(index):
+    """Maak extra suffixen zoals aa, ab, ac ... bx."""
+    alfabet = "abcdefghijklmnopqrstuvwxyz"
+    waarde = index + 26
+    letters = ""
+
+    while waarde >= 0:
+        letters = alfabet[waarde % 26] + letters
+        waarde = waarde // 26 - 1
+        if waarde < 0:
+            break
+
+    return letters
+
+
+def pak_getal_suffix(groep):
+    """Pak een korte suffix voor een grote getal-groep."""
+    standaard = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"]
+    if groep < len(standaard):
+        return standaard[groep]
+    return maak_letter_suffix(groep - len(standaard))
+
+
+def format_grote_waarde(cijfers, begin, negatief):
+    """Maak van grote cijfers een korte tekst met suffix."""
+    groep = (cijfers - 1) // 3
+    suffix = pak_getal_suffix(groep)
+    eerste_stuk = cijfers - groep * 3
+    hoofd = begin[:eerste_stuk]
+    decimaal = begin[eerste_stuk : eerste_stuk + 1]
+    tekst = f"{hoofd}.{decimaal}{suffix}" if decimaal and decimaal != "0" else f"{hoofd}{suffix}"
+    return f"-{tekst}" if negatief else tekst
+
+
+def format_macht_van_tien(macht):
+    """Maak 10^macht leesbaar zonder e-notatie."""
+    if macht <= 0:
+        return "1"
+
+    groep = macht // 3
+    rest = macht % 3
+    hoofd = str(10 ** rest)
+    suffix = pak_getal_suffix(groep)
+    return f"{hoofd}{suffix}"
+
+
 def format_getal(getal):
     """Maak grote getallen kort, zodat ze op het scherm passen."""
-    suffixen = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"]
-
     if isinstance(getal, int):
         negatief = getal < 0
         waarde = abs(getal)
@@ -540,29 +584,10 @@ def format_getal(getal):
 
         if waarde < 10**15:
             tekst_getal = str(waarde)
-            groep = (len(tekst_getal) - 1) // 3
-            if groep < len(suffixen):
-                eerste_stuk = len(tekst_getal) - groep * 3
-                hoofd = tekst_getal[:eerste_stuk]
-                decimaal = tekst_getal[eerste_stuk : eerste_stuk + 1]
-                tekst = f"{hoofd}.{decimaal}{suffixen[groep]}" if decimaal and decimaal != "0" else f"{hoofd}{suffixen[groep]}"
-                return f"-{tekst}" if negatief else tekst
+            return format_grote_waarde(len(tekst_getal), tekst_getal + "0", negatief)
 
-            macht = len(tekst_getal) - 1
-            tekst = f"{tekst_getal[0]}.{tekst_getal[1:3]}e{macht}"
-            return f"-{tekst}" if negatief else tekst
-
-        cijfers, begin = schat_grote_int(waarde, 3)
-        groep = (cijfers - 1) // 3
-        if groep < len(suffixen):
-            eerste_stuk = cijfers - groep * 3
-            hoofd = begin[:eerste_stuk]
-            decimaal = begin[eerste_stuk : eerste_stuk + 1]
-            tekst = f"{hoofd}.{decimaal}{suffixen[groep]}" if decimaal and decimaal != "0" else f"{hoofd}{suffixen[groep]}"
-            return f"-{tekst}" if negatief else tekst
-
-        tekst = f"{begin[0]}.{begin[1:3]}e{cijfers - 1}"
-        return f"-{tekst}" if negatief else tekst
+        cijfers, begin = schat_grote_int(waarde, 4)
+        return format_grote_waarde(cijfers, begin, negatief)
 
     waarde = float(getal)
     if math.isnan(waarde):
@@ -578,12 +603,13 @@ def format_getal(getal):
         tekst = str(int(afgerond)) if afgerond == int(afgerond) else f"{afgerond:.1f}"
         return f"-{tekst}" if negatief else tekst
 
-    groep = min(int(math.log10(waarde) // 3), len(suffixen) - 1)
-    klein = waarde / (1000 ** groep)
-    tekst = f"{klein:.1f}{suffixen[groep]}"
-    if tekst.endswith(".0" + suffixen[groep]):
-        tekst = f"{int(klein)}{suffixen[groep]}"
-    return f"-{tekst}" if negatief else tekst
+    log10_waarde = math.log10(waarde)
+    cijfers = int(log10_waarde) + 1
+    mantisse = 10 ** (log10_waarde - (cijfers - 1))
+    begin_getal = int(mantisse * 1000)
+    begin_getal = max(1000, min(9999, begin_getal))
+    begin = str(begin_getal).zfill(4)
+    return format_grote_waarde(cijfers, begin, negatief)
 
 
 def format_tienden(getal_tienden):
@@ -1093,9 +1119,7 @@ def bereken_beschikbare_kaart_trekkingen(multiplier):
 
 def format_kaart_mijlpaal(stap):
     """Maak de volgende multiplier-mijlpaal netjes leesbaar."""
-    if stap <= 3:
-        return f"x{10 ** stap}"
-    return f"x1e{stap}"
+    return f"x{format_macht_van_tien(stap)}"
 
 
 def trek_kaart(kaarten_stapel):
