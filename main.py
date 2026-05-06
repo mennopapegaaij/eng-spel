@@ -1,8 +1,10 @@
 """Eng Spel - een simpel clicker-spel met een enge smiley."""
 
+import json
 import math
 import random
 import sys
+from pathlib import Path
 
 import pygame
 
@@ -77,6 +79,9 @@ BASIS_UPGRADES = [
 ]
 SHOP_VOORVOEGSELS = ["Mist", "Spook", "Schim", "Graf", "Nacht", "Donder", "Helle", "Bot", "Maan", "Duister"]
 SHOP_ACHTERVOEGSELS = ["Klauw", "Vlam", "Storm", "Tand", "Wolk", "Beet", "Kern", "Poot", "Golf", "Ster"]
+OPSLAAN_BESTAND = Path(__file__).with_name("spelopslag.json")
+OPSLAAN_VERSIE = 1
+AUTO_OPSLAAN_MS = 5000
 
 
 def maak_kaarten(goud=False):
@@ -143,6 +148,176 @@ def beschrijf_kaart(nummer, goud=False):
 def tel_getrokken_kaarten_van_nummer(getrokken_sleutels, nummer):
     """Tel hoeveel kaarten van een bepaald nummer al zijn getrokken."""
     return sum(1 for _, kaart_nummer in getrokken_sleutels if kaart_nummer == nummer)
+
+
+def maak_kaart_lookup(kaarten, gouden_kaarten):
+    """Maak een snelle lijst om kaarten weer terug te vinden."""
+    lookup = {}
+    for kaart in kaarten + gouden_kaarten:
+        sleutel = (bool(kaart.get("goud", False)), kaart["reeks"], int(kaart["nummer"]))
+        lookup[sleutel] = kaart
+    return lookup
+
+
+def kaart_naar_bewaar_data(kaart):
+    """Bewaar alleen de simpele kaart-info."""
+    if kaart is None:
+        return None
+
+    return {
+        "reeks": kaart["reeks"],
+        "nummer": int(kaart["nummer"]),
+        "goud": bool(kaart.get("goud", False)),
+    }
+
+
+def kaart_van_bewaar_data(data, kaart_lookup):
+    """Zet bewaarde kaart-info weer om naar een echte kaart."""
+    if data is None:
+        return None
+
+    sleutel = (bool(data["goud"]), str(data["reeks"]), int(data["nummer"]))
+    if sleutel not in kaart_lookup:
+        raise KeyError(f"Onbekende kaart in opslag: {sleutel}")
+    return kaart_lookup[sleutel].copy()
+
+
+def sleutels_naar_bewaar_data(getrokken_sleutels):
+    """Zet een set met kaartsleutels om naar JSON-data."""
+    return [[reeks, nummer] for reeks, nummer in sorted(getrokken_sleutels)]
+
+
+def sleutels_van_bewaar_data(data):
+    """Zet JSON-data weer om naar kaartsleutels."""
+    return {(str(reeks), int(nummer)) for reeks, nummer in data}
+
+
+def maak_nieuwe_speltoestand():
+    """Maak een nieuwe, lege speltoestand."""
+    kaarten = maak_kaarten()
+    gouden_kaarten = maak_kaarten(goud=True)
+    return {
+        "punten": START_PUNTEN * 10,
+        "klik_kracht": START_KLIK_KRACHT,
+        "auto_spoken": START_AUTO_SPOKEN,
+        "shop_pagina": 0,
+        "multiplier": 10,
+        "luckcoins": 0,
+        "klik_animatie": 0,
+        "teller": 0,
+        "auto_punten_buffer": 0,
+        "luckcoin_buffer": 0,
+        "kaarten": kaarten,
+        "kaarten_stapel": schud_kaarten(kaarten),
+        "gouden_kaarten": gouden_kaarten,
+        "gouden_kaarten_stapel": schud_kaarten(gouden_kaarten),
+        "kaart_trekkingen": 0,
+        "laatste_kaart": None,
+        "laatste_kaart_resultaat": "",
+        "laatste_gouden_kaart": None,
+        "laatste_gouden_kaart_resultaat": "",
+        "getrokken_kaart_sleutels": set(),
+        "getrokken_gouden_kaart_sleutels": set(),
+        "kaart_overzicht_open": False,
+        "opslaan_timer": 0,
+    }
+
+
+def laad_speltoestand():
+    """Laad de voortgang uit het opslagbestand."""
+    speltoestand = maak_nieuwe_speltoestand()
+    if not OPSLAAN_BESTAND.exists():
+        return speltoestand
+
+    kaart_lookup = maak_kaart_lookup(speltoestand["kaarten"], speltoestand["gouden_kaarten"])
+
+    try:
+        with OPSLAAN_BESTAND.open("r", encoding="utf-8") as bestand:
+            data = json.load(bestand)
+
+        if int(data.get("versie", 0)) != OPSLAAN_VERSIE:
+            print("De oude opslag past niet meer. Het spel start opnieuw.")
+            return speltoestand
+
+        speltoestand["punten"] = int(data.get("punten", speltoestand["punten"]))
+        speltoestand["klik_kracht"] = int(data.get("klik_kracht", speltoestand["klik_kracht"]))
+        speltoestand["auto_spoken"] = int(data.get("auto_spoken", speltoestand["auto_spoken"]))
+        speltoestand["shop_pagina"] = max(0, int(data.get("shop_pagina", speltoestand["shop_pagina"])))
+        speltoestand["multiplier"] = max(1, int(data.get("multiplier", speltoestand["multiplier"])))
+        speltoestand["luckcoins"] = max(0, int(data.get("luckcoins", speltoestand["luckcoins"])))
+        speltoestand["auto_punten_buffer"] = max(0, int(data.get("auto_punten_buffer", 0)))
+        speltoestand["luckcoin_buffer"] = max(0, int(data.get("luckcoin_buffer", 0)))
+        speltoestand["kaart_trekkingen"] = max(0, int(data.get("kaart_trekkingen", 0)))
+        speltoestand["laatste_kaart_resultaat"] = str(data.get("laatste_kaart_resultaat", ""))
+        speltoestand["laatste_gouden_kaart_resultaat"] = str(data.get("laatste_gouden_kaart_resultaat", ""))
+
+        if "kaarten_stapel" in data:
+            speltoestand["kaarten_stapel"] = [kaart_van_bewaar_data(kaart, kaart_lookup) for kaart in data["kaarten_stapel"]]
+        if "gouden_kaarten_stapel" in data:
+            speltoestand["gouden_kaarten_stapel"] = [kaart_van_bewaar_data(kaart, kaart_lookup) for kaart in data["gouden_kaarten_stapel"]]
+        if "laatste_kaart" in data:
+            speltoestand["laatste_kaart"] = kaart_van_bewaar_data(data["laatste_kaart"], kaart_lookup)
+        if "laatste_gouden_kaart" in data:
+            speltoestand["laatste_gouden_kaart"] = kaart_van_bewaar_data(data["laatste_gouden_kaart"], kaart_lookup)
+        if "getrokken_kaart_sleutels" in data:
+            speltoestand["getrokken_kaart_sleutels"] = sleutels_van_bewaar_data(data["getrokken_kaart_sleutels"])
+        if "getrokken_gouden_kaart_sleutels" in data:
+            speltoestand["getrokken_gouden_kaart_sleutels"] = sleutels_van_bewaar_data(data["getrokken_gouden_kaart_sleutels"])
+    except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as fout:
+        print(f"Opslag laden mislukte: {fout}")
+        return maak_nieuwe_speltoestand()
+
+    return speltoestand
+
+
+def sla_spel_op(
+    punten,
+    klik_kracht,
+    auto_spoken,
+    shop_pagina,
+    multiplier,
+    luckcoins,
+    auto_punten_buffer,
+    luckcoin_buffer,
+    kaart_trekkingen,
+    laatste_kaart,
+    laatste_kaart_resultaat,
+    laatste_gouden_kaart,
+    laatste_gouden_kaart_resultaat,
+    getrokken_kaart_sleutels,
+    getrokken_gouden_kaart_sleutels,
+    kaarten_stapel,
+    gouden_kaarten_stapel,
+):
+    """Sla de voortgang veilig op in een JSON-bestand."""
+    opslag_data = {
+        "versie": OPSLAAN_VERSIE,
+        "punten": int(punten),
+        "klik_kracht": int(klik_kracht),
+        "auto_spoken": int(auto_spoken),
+        "shop_pagina": int(shop_pagina),
+        "multiplier": int(multiplier),
+        "luckcoins": int(luckcoins),
+        "auto_punten_buffer": int(auto_punten_buffer),
+        "luckcoin_buffer": int(luckcoin_buffer),
+        "kaart_trekkingen": int(kaart_trekkingen),
+        "laatste_kaart": kaart_naar_bewaar_data(laatste_kaart),
+        "laatste_kaart_resultaat": laatste_kaart_resultaat,
+        "laatste_gouden_kaart": kaart_naar_bewaar_data(laatste_gouden_kaart),
+        "laatste_gouden_kaart_resultaat": laatste_gouden_kaart_resultaat,
+        "getrokken_kaart_sleutels": sleutels_naar_bewaar_data(getrokken_kaart_sleutels),
+        "getrokken_gouden_kaart_sleutels": sleutels_naar_bewaar_data(getrokken_gouden_kaart_sleutels),
+        "kaarten_stapel": [kaart_naar_bewaar_data(kaart) for kaart in kaarten_stapel],
+        "gouden_kaarten_stapel": [kaart_naar_bewaar_data(kaart) for kaart in gouden_kaarten_stapel],
+    }
+
+    tijdelijk_bestand = OPSLAAN_BESTAND.with_suffix(".tmp")
+    try:
+        with tijdelijk_bestand.open("w", encoding="utf-8") as bestand:
+            json.dump(opslag_data, bestand, ensure_ascii=False, indent=2)
+        tijdelijk_bestand.replace(OPSLAAN_BESTAND)
+    except OSError as fout:
+        print(f"Opslaan mislukte: {fout}")
 
 
 def teken_achtergrond(scherm, teller):
@@ -1026,31 +1201,37 @@ def speel():
     reset_knop = pygame.Rect(45, 415, 250, 74)
 
     # Spelvariabelen.
-    punten, klik_kracht, auto_spoken, shop_pagina = reset_speltoestand()
-    multiplier = 10
-    luckcoins = 0
-    klik_animatie = 0
-    teller = 0
-    auto_punten_buffer = 0
-    luckcoin_buffer = 0
-    kaarten = maak_kaarten()
-    kaarten_stapel = schud_kaarten(kaarten)
-    gouden_kaarten = maak_kaarten(goud=True)
-    gouden_kaarten_stapel = schud_kaarten(gouden_kaarten)
-    kaart_trekkingen = 0
-    laatste_kaart = None
-    laatste_kaart_resultaat = ""
-    laatste_gouden_kaart = None
-    laatste_gouden_kaart_resultaat = ""
-    getrokken_kaart_sleutels = set()
-    getrokken_gouden_kaart_sleutels = set()
-    kaart_overzicht_open = False
+    speltoestand = laad_speltoestand()
+    punten = speltoestand["punten"]
+    klik_kracht = speltoestand["klik_kracht"]
+    auto_spoken = speltoestand["auto_spoken"]
+    shop_pagina = speltoestand["shop_pagina"]
+    multiplier = speltoestand["multiplier"]
+    luckcoins = speltoestand["luckcoins"]
+    klik_animatie = speltoestand["klik_animatie"]
+    teller = speltoestand["teller"]
+    auto_punten_buffer = speltoestand["auto_punten_buffer"]
+    luckcoin_buffer = speltoestand["luckcoin_buffer"]
+    kaarten = speltoestand["kaarten"]
+    kaarten_stapel = speltoestand["kaarten_stapel"]
+    gouden_kaarten = speltoestand["gouden_kaarten"]
+    gouden_kaarten_stapel = speltoestand["gouden_kaarten_stapel"]
+    kaart_trekkingen = speltoestand["kaart_trekkingen"]
+    laatste_kaart = speltoestand["laatste_kaart"]
+    laatste_kaart_resultaat = speltoestand["laatste_kaart_resultaat"]
+    laatste_gouden_kaart = speltoestand["laatste_gouden_kaart"]
+    laatste_gouden_kaart_resultaat = speltoestand["laatste_gouden_kaart_resultaat"]
+    getrokken_kaart_sleutels = speltoestand["getrokken_kaart_sleutels"]
+    getrokken_gouden_kaart_sleutels = speltoestand["getrokken_gouden_kaart_sleutels"]
+    kaart_overzicht_open = speltoestand["kaart_overzicht_open"]
+    opslaan_timer = speltoestand["opslaan_timer"]
     upgrades = maak_upgrades()
     vakken_per_pagina = len(shop_vakken)
 
     while True:
         delta_ms = klok.tick(FPS)
         teller += 1
+        opslaan_timer += delta_ms
 
         punten_voor_auto = punten
         punten, auto_punten_buffer = verwerk_auto_punten(
@@ -1062,6 +1243,25 @@ def speel():
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                sla_spel_op(
+                    punten,
+                    klik_kracht,
+                    auto_spoken,
+                    shop_pagina,
+                    multiplier,
+                    luckcoins,
+                    auto_punten_buffer,
+                    luckcoin_buffer,
+                    kaart_trekkingen,
+                    laatste_kaart,
+                    laatste_kaart_resultaat,
+                    laatste_gouden_kaart,
+                    laatste_gouden_kaart_resultaat,
+                    getrokken_kaart_sleutels,
+                    getrokken_gouden_kaart_sleutels,
+                    kaarten_stapel,
+                    gouden_kaarten_stapel,
+                )
                 pygame.quit()
                 sys.exit()
 
@@ -1162,6 +1362,28 @@ def speel():
 
         if klik_animatie > 0:
             klik_animatie -= 1
+
+        if opslaan_timer >= AUTO_OPSLAAN_MS:
+            sla_spel_op(
+                punten,
+                klik_kracht,
+                auto_spoken,
+                shop_pagina,
+                multiplier,
+                luckcoins,
+                auto_punten_buffer,
+                luckcoin_buffer,
+                kaart_trekkingen,
+                laatste_kaart,
+                laatste_kaart_resultaat,
+                laatste_gouden_kaart,
+                laatste_gouden_kaart_resultaat,
+                getrokken_kaart_sleutels,
+                getrokken_gouden_kaart_sleutels,
+                kaarten_stapel,
+                gouden_kaarten_stapel,
+            )
+            opslaan_timer = 0
 
         teken_achtergrond(scherm, teller)
 

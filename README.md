@@ -19,6 +19,7 @@ Een simpel clicker-spel in Python met `pygame`.
 - Gouden kaarten geven dezelfde soort nummer-bonussen, maar dan voor je `luckcoins`
 - `Luckcoins` beginnen bij `0`
 - Je krijgt vanzelf elke seconde `0.1` luckcoin erbij
+- Je voortgang wordt automatisch opgeslagen in `spelopslag.json`
 
 ## Starten
 
