@@ -292,6 +292,22 @@ def format_tienden(getal_tienden):
     return f"-{tekst}" if negatief else tekst
 
 
+def maak_passende_tekst(font, tekst, max_breedte):
+    """Knip tekst af met ... zodat hij netjes in een vak past."""
+    if font.size(tekst)[0] <= max_breedte:
+        return tekst
+
+    puntjes = "..."
+    if font.size(puntjes)[0] > max_breedte:
+        return puntjes
+
+    kort = tekst
+    while kort and font.size(kort + puntjes)[0] > max_breedte:
+        kort = kort[:-1]
+
+    return kort + puntjes
+
+
 def bereken_reset_bonus(punten):
     """Geef de resetbonus terug.
 
@@ -577,11 +593,11 @@ def maak_shop_vakken(paneel_rect):
     """Maak 8 vakken voor de shop (2 kolommen van 4)."""
     vakken = []
     start_x = paneel_rect.x + 16
-    start_y = paneel_rect.y + 245
+    start_y = paneel_rect.y + 236
     breedte = 129
-    hoogte = 55
+    hoogte = 52
     tussenruimte_x = 10
-    tussenruimte_y = 10
+    tussenruimte_y = 8
 
     for rij in range(4):
         for kolom in range(2):
@@ -601,13 +617,17 @@ def teken_shop_knop(scherm, rect, upgrade, punten, font_titel, font_klein):
     pygame.draw.rect(scherm, kleur, rect, border_radius=12)
     pygame.draw.rect(scherm, rand, rect, 2, border_radius=12)
 
-    titel_tekst = font_titel.render(upgrade["titel"], True, TEKST_KLEUR)
-    uitleg_tekst = font_klein.render(upgrade["uitleg"], True, SUBTEKST_KLEUR)
-    kosten_tekst = font_klein.render(f"{format_getal(upgrade['kosten'])} p", True, GEEL)
+    tekst_breedte = rect.width - 16
+    titel = maak_passende_tekst(font_titel, upgrade["titel"], tekst_breedte)
+    uitleg = maak_passende_tekst(font_klein, upgrade["uitleg"], tekst_breedte)
+    kosten = maak_passende_tekst(font_klein, f"{format_getal(upgrade['kosten'])} p", tekst_breedte)
+    titel_tekst = font_titel.render(titel, True, TEKST_KLEUR)
+    uitleg_tekst = font_klein.render(uitleg, True, SUBTEKST_KLEUR)
+    kosten_tekst = font_klein.render(kosten, True, GEEL)
 
-    scherm.blit(titel_tekst, (rect.x + 8, rect.y + 6))
-    scherm.blit(uitleg_tekst, (rect.x + 8, rect.y + 24))
-    scherm.blit(kosten_tekst, (rect.x + 8, rect.y + 39))
+    scherm.blit(titel_tekst, (rect.x + 8, rect.y + 5))
+    scherm.blit(uitleg_tekst, (rect.x + 8, rect.y + 22))
+    scherm.blit(kosten_tekst, (rect.x + 8, rect.y + 35))
 
 
 def kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina):
@@ -782,43 +802,46 @@ def teken_kaart_paneel(
     kaart_beschikbaar = bereken_beschikbare_kaart_trekkingen(multiplier)
     kaarten_over = min(len(kaarten_stapel), max(0, kaart_beschikbaar - kaart_trekkingen))
     volgende_kaart = format_kaart_mijlpaal(kaart_trekkingen + 1)
+    paneel_breedte = paneel_rect.width - 36
 
     pygame.draw.rect(scherm, PANEEL_KLEUR, paneel_rect, border_radius=20)
     pygame.draw.rect(scherm, PANEEL_RAND, paneel_rect, 4, border_radius=20)
 
     titel = font.render("Kaarten", True, TEKST_KLEUR)
     if not kaarten_stapel:
-        status = font_klein.render("Deck compleet!", True, GEEL)
+        status_tekst = "Deck compleet!"
     elif kaarten_over > 0:
-        status = font_klein.render(f"Vrije kaarten: {kaarten_over}", True, GEEL)
+        status_tekst = f"Vrije kaarten: {kaarten_over}"
     else:
-        status = font_klein.render(f"Volgende kaart bij {volgende_kaart}", True, SUBTEKST_KLEUR)
-    deck_tekst = font_klein.render(f"Normaal deck: {len(kaarten_stapel)}/48", True, SUBTEKST_KLEUR)
-    goud_tekst = font_klein.render(f"Goud deck: {len(gouden_kaarten_stapel)}/48", True, GEEL)
+        status_tekst = f"Volgende kaart bij {volgende_kaart}"
+    status = font_klein.render(maak_passende_tekst(font_klein, status_tekst, paneel_breedte), True, GEEL if kaarten_over > 0 or not kaarten_stapel else SUBTEKST_KLEUR)
+    deck_tekst = font_klein.render(maak_passende_tekst(font_klein, f"Normaal deck: {len(kaarten_stapel)}/48", paneel_breedte), True, SUBTEKST_KLEUR)
+    goud_tekst = font_klein.render(maak_passende_tekst(font_klein, f"Goud deck: {len(gouden_kaarten_stapel)}/48", paneel_breedte), True, GEEL)
     scherm.blit(titel, (paneel_rect.x + 16, paneel_rect.y + 12))
     scherm.blit(status, (paneel_rect.x + 18, paneel_rect.y + 42))
-    scherm.blit(deck_tekst, (paneel_rect.x + 18, paneel_rect.y + 58))
-    scherm.blit(goud_tekst, (paneel_rect.x + 120, paneel_rect.y + 58))
+    scherm.blit(deck_tekst, (paneel_rect.x + 18, paneel_rect.y + 60))
+    scherm.blit(goud_tekst, (paneel_rect.x + 18, paneel_rect.y + 78))
 
-    kaart_rect = pygame.Rect(paneel_rect.x + 16, paneel_rect.y + 82, paneel_rect.width - 32, 90)
+    kaart_rect = pygame.Rect(paneel_rect.x + 16, paneel_rect.y + 104, paneel_rect.width - 32, 78)
+    kaart_breedte = kaart_rect.width - 20
     if laatste_kaart:
         pygame.draw.rect(scherm, laatste_kaart["kleur"], kaart_rect, border_radius=16)
         pygame.draw.rect(scherm, KNOP_RAND, kaart_rect, 2, border_radius=16)
-        kaart_titel = font.render(laatste_kaart["titel"], True, TEKST_KLEUR)
-        kaart_uitleg = font_klein.render(laatste_kaart["uitleg"], True, WIT)
-        kaart_resultaat = font_klein.render(laatste_kaart_resultaat, True, GEEL)
-        kaart_info = font_klein.render(f"Laatste kaart - {laatste_kaart['reeks']}", True, GEEL)
+        kaart_titel = font.render(maak_passende_tekst(font, laatste_kaart["titel"], kaart_breedte), True, TEKST_KLEUR)
+        kaart_uitleg = font_klein.render(maak_passende_tekst(font_klein, laatste_kaart["uitleg"], kaart_breedte), True, WIT)
+        kaart_resultaat = font_klein.render(maak_passende_tekst(font_klein, laatste_kaart_resultaat, kaart_breedte), True, GEEL)
+        kaart_info = font_klein.render(maak_passende_tekst(font_klein, f"Laatste kaart - {laatste_kaart['reeks']}", kaart_breedte), True, GEEL)
         scherm.blit(kaart_info, (kaart_rect.x + 10, kaart_rect.y + 8))
-        scherm.blit(kaart_titel, (kaart_rect.x + 10, kaart_rect.y + 26))
-        scherm.blit(kaart_uitleg, (kaart_rect.x + 10, kaart_rect.y + 48))
-        scherm.blit(kaart_resultaat, (kaart_rect.x + 10, kaart_rect.y + 68))
+        scherm.blit(kaart_titel, (kaart_rect.x + 10, kaart_rect.y + 24))
+        scherm.blit(kaart_uitleg, (kaart_rect.x + 10, kaart_rect.y + 44))
+        scherm.blit(kaart_resultaat, (kaart_rect.x + 10, kaart_rect.y + 58))
     else:
         pygame.draw.rect(scherm, KNOP_UIT, kaart_rect, border_radius=16)
         pygame.draw.rect(scherm, PANEEL_RAND, kaart_rect, 2, border_radius=16)
         kaart_info = font.render("Nog geen kaart", True, TEKST_KLEUR)
-        kaart_uitleg = font_klein.render("48 random kaarten: 1 t/m 12, vier keer", True, SUBTEKST_KLEUR)
-        scherm.blit(kaart_info, (kaart_rect.x + 10, kaart_rect.y + 22))
-        scherm.blit(kaart_uitleg, (kaart_rect.x + 10, kaart_rect.y + 52))
+        kaart_uitleg = font_klein.render(maak_passende_tekst(font_klein, "48 random kaarten: 1 t/m 12, vier keer", kaart_breedte), True, SUBTEKST_KLEUR)
+        scherm.blit(kaart_info, (kaart_rect.x + 10, kaart_rect.y + 18))
+        scherm.blit(kaart_uitleg, (kaart_rect.x + 10, kaart_rect.y + 46))
 
     genoeg = kaarten_over > 0
     knop_kleur = KNOP_KLEUR if genoeg else KNOP_UIT
@@ -828,11 +851,12 @@ def teken_kaart_paneel(
 
     knop_tekst = font.render("Trek kaart", True, TEKST_KLEUR)
     if not kaarten_stapel:
-        kosten_tekst = font_klein.render("Alle 48 kaarten zijn getrokken!", True, GEEL)
+        kosten_regel = "Alle 48 kaarten zijn getrokken!"
     elif kaarten_over > 0:
-        kosten_tekst = font_klein.render("Gratis bij deze milestone!", True, GEEL)
+        kosten_regel = "Gratis bij deze milestone!"
     else:
-        kosten_tekst = font_klein.render(f"Haal eerst {volgende_kaart}", True, GEEL)
+        kosten_regel = f"Haal eerst {volgende_kaart}"
+    kosten_tekst = font_klein.render(maak_passende_tekst(font_klein, kosten_regel, knop_rect.width - 16), True, GEEL)
     scherm.blit(knop_tekst, (knop_rect.x + knop_rect.width // 2 - knop_tekst.get_width() // 2, knop_rect.y + 6))
     scherm.blit(kosten_tekst, (knop_rect.x + knop_rect.width // 2 - kosten_tekst.get_width() // 2, knop_rect.y + 32))
 
@@ -847,17 +871,19 @@ def teken_kaart_paneel(
         ),
     )
 
-    luckcoins_tekst = font_klein.render(f"Luckcoins: {format_getal(luckcoins)}", True, GEEL)
-    scherm.blit(luckcoins_tekst, (paneel_rect.x + 18, paneel_rect.y + 282))
+    luckcoins_tekst = font_klein.render(maak_passende_tekst(font_klein, f"Luckcoins: {format_getal(luckcoins)}", paneel_breedte), True, GEEL)
+    scherm.blit(luckcoins_tekst, (paneel_rect.x + 18, paneel_rect.y + 284))
 
     if laatste_gouden_kaart:
-        goud_resultaat = font_klein.render(f"Goud: {laatste_gouden_kaart['titel']}", True, KNOP_RAND)
-        goud_uitleg = font_klein.render(laatste_gouden_kaart_resultaat, True, TEKST_KLEUR)
+        goud_resultaat_regel = f"Goud: {laatste_gouden_kaart['titel']}"
+        goud_uitleg_regel = laatste_gouden_kaart_resultaat
     else:
-        goud_resultaat = font_klein.render("Gouden kaart: nog geen", True, KNOP_RAND)
-        goud_uitleg = font_klein.render("Voltooi een normaal deck voor 1 gouden kaart.", True, SUBTEKST_KLEUR)
-    scherm.blit(goud_resultaat, (paneel_rect.x + 18, paneel_rect.y + 300))
-    scherm.blit(goud_uitleg, (paneel_rect.x + 18, paneel_rect.y + 316))
+        goud_resultaat_regel = "Gouden kaart: nog geen"
+        goud_uitleg_regel = "Voltooi een normaal deck voor 1 gouden kaart."
+    goud_resultaat = font_klein.render(maak_passende_tekst(font_klein, goud_resultaat_regel, paneel_breedte), True, KNOP_RAND)
+    goud_uitleg = font_klein.render(maak_passende_tekst(font_klein, goud_uitleg_regel, paneel_breedte), True, TEKST_KLEUR if laatste_gouden_kaart else SUBTEKST_KLEUR)
+    scherm.blit(goud_resultaat, (paneel_rect.x + 18, paneel_rect.y + 304))
+    scherm.blit(goud_uitleg, (paneel_rect.x + 18, paneel_rect.y + 322))
 
 
 def teken_deck_grid(scherm, deck_rect, titel, kaarten, getrokken_sleutels, font, font_klein):
@@ -977,14 +1003,14 @@ def speel():
     # Rechthoeken voor het poppetje en de winkel.
     poppetje_rect = pygame.Rect(120, 110, 220, 260)
     kaart_paneel_rect = pygame.Rect(360, 110, 220, 342)
-    kaart_knop_rect = pygame.Rect(kaart_paneel_rect.x + 20, kaart_paneel_rect.y + 182, kaart_paneel_rect.width - 40, 58)
-    kaart_overzicht_knop_rect = pygame.Rect(kaart_paneel_rect.x + 20, kaart_paneel_rect.y + 246, kaart_paneel_rect.width - 40, 30)
+    kaart_knop_rect = pygame.Rect(kaart_paneel_rect.x + 20, kaart_paneel_rect.y + 188, kaart_paneel_rect.width - 40, 58)
+    kaart_overzicht_knop_rect = pygame.Rect(kaart_paneel_rect.x + 20, kaart_paneel_rect.y + 252, kaart_paneel_rect.width - 40, 30)
     kaart_overlay_rect = pygame.Rect(70, 36, 820, 468)
     sluit_kaart_overlay_rect = pygame.Rect(kaart_overlay_rect.right - 108, kaart_overlay_rect.y + 16, 88, 30)
     paneel_rect = pygame.Rect(620, 30, 300, 480)
     shop_vakken = maak_shop_vakken(paneel_rect)
-    vorige_pagina_knop = pygame.Rect(paneel_rect.x + 176, paneel_rect.y + 176, 32, 28)
-    volgende_pagina_knop = pygame.Rect(paneel_rect.x + 252, paneel_rect.y + 176, 32, 28)
+    vorige_pagina_knop = pygame.Rect(paneel_rect.x + 176, paneel_rect.y + 198, 32, 28)
+    volgende_pagina_knop = pygame.Rect(paneel_rect.x + 252, paneel_rect.y + 198, 32, 28)
     reset_knop = pygame.Rect(45, 415, 250, 74)
 
     # Spelvariabelen.
@@ -1162,16 +1188,16 @@ def speel():
         multiplier_tekst = font_klein.render(f"Multiplier: x{format_tienden(multiplier)}", True, GEEL)
         eng_kracht = bereken_eng_niveau(punten)
         eng_tekst = font_klein.render(f"Eng kracht: {format_getal(eng_kracht)}", True, SUBTEKST_KLEUR)
-        scherm.blit(punten_tekst, (paneel_rect.x + 20, 55))
-        scherm.blit(klik_tekst, (paneel_rect.x + 20, 120))
-        scherm.blit(auto_tekst, (paneel_rect.x + 20, 160))
-        scherm.blit(multiplier_tekst, (paneel_rect.x + 20, 192))
-        scherm.blit(eng_tekst, (paneel_rect.x + 20, 212))
+        scherm.blit(punten_tekst, (paneel_rect.x + 20, 48))
+        scherm.blit(klik_tekst, (paneel_rect.x + 20, 104))
+        scherm.blit(auto_tekst, (paneel_rect.x + 20, 140))
+        scherm.blit(multiplier_tekst, (paneel_rect.x + 20, 178))
+        scherm.blit(eng_tekst, (paneel_rect.x + 20, 202))
 
         winkel_tekst = font_middel.render("Shop", True, TEKST_KLEUR)
         pagina_tekst = font_klein.render(f"Pagina {shop_pagina + 1}", True, SUBTEKST_KLEUR)
-        scherm.blit(winkel_tekst, (paneel_rect.x + 20, 220))
-        scherm.blit(pagina_tekst, (paneel_rect.x + 210, 224))
+        scherm.blit(winkel_tekst, (paneel_rect.x + 20, 226))
+        scherm.blit(pagina_tekst, (paneel_rect.x + 210, 232))
 
         teken_pagina_knop(scherm, vorige_pagina_knop, "<", shop_pagina > 0, font_klein)
         teken_pagina_knop(scherm, volgende_pagina_knop, ">", True, font_klein)
