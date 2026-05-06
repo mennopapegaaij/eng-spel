@@ -80,37 +80,113 @@ BASIS_UPGRADES = [
 SHOP_VOORVOEGSELS = ["Mist", "Spook", "Schim", "Graf", "Nacht", "Donder", "Helle", "Bot", "Maan", "Duister"]
 SHOP_ACHTERVOEGSELS = ["Klauw", "Vlam", "Storm", "Tand", "Wolk", "Beet", "Kern", "Poot", "Golf", "Ster"]
 OPSLAAN_BESTAND = Path(__file__).with_name("spelopslag.json")
-OPSLAAN_VERSIE = 1
+OPSLAAN_VERSIE = 2
 AUTO_OPSLAAN_MS = 5000
 LUCKSHOP_START_KOSTEN = 10000
 LUCKSHOP_START_FACTOR = 100
 LUCKSHOP_VOORVOEGSELS = ["Geluk", "Ster", "Maan", "Fortuin", "Goud", "Klaver", "Wens", "Kroon"]
 LUCKSHOP_ACHTERVOEGSELS = ["Regen", "Boost", "Stapel", "Storm", "Ruil", "Sprong", "Schat", "Golf"]
+WERELD_BASISPRIJS = 10**66
+WERELD_THEMAS = [
+    {
+        "naam": "Schaduw",
+        "punten": "Punten",
+        "luckcoins": "Luckcoins",
+        "reeksen": ["Maan", "Mist", "Spook", "Nacht"],
+        "goud_reeksen": ["Goudmaan", "Goudmist", "Goudspook", "Goudnacht"],
+        "kleuren": [(78, 42, 98), (118, 34, 72), (92, 28, 122), (60, 80, 130)],
+        "goud_kleuren": [(188, 146, 44), (205, 160, 52), (222, 176, 58), (238, 194, 70)],
+    },
+    {
+        "naam": "Kristal",
+        "punten": "Kristalpunten",
+        "luckcoins": "Kristalluck",
+        "reeksen": ["Glans", "Prisma", "Nova", "Scherf"],
+        "goud_reeksen": ["Goudglans", "Goudprisma", "Goudnova", "Goudscherf"],
+        "kleuren": [(70, 110, 170), (94, 150, 210), (120, 190, 230), (80, 145, 190)],
+        "goud_kleuren": [(180, 175, 78), (210, 190, 90), (236, 208, 110), (196, 166, 70)],
+    },
+    {
+        "naam": "Vlam",
+        "punten": "Vlampunten",
+        "luckcoins": "Vlamluck",
+        "reeksen": ["Sintel", "As", "Gloed", "Kool"],
+        "goud_reeksen": ["Goudsintel", "Goudas", "Goudgloed", "Goudkool"],
+        "kleuren": [(150, 60, 40), (180, 80, 30), (210, 110, 50), (120, 50, 26)],
+        "goud_kleuren": [(194, 148, 52), (220, 166, 70), (240, 190, 82), (174, 130, 45)],
+    },
+    {
+        "naam": "Ster",
+        "punten": "Sterpunten",
+        "luckcoins": "Sterluck",
+        "reeksen": ["Puls", "Comet", "Aura", "Orbit"],
+        "goud_reeksen": ["Goudpuls", "Goudcomet", "Goudaura", "Goudorbit"],
+        "kleuren": [(70, 60, 150), (110, 90, 180), (150, 110, 210), (85, 80, 170)],
+        "goud_kleuren": [(182, 152, 60), (215, 182, 84), (238, 198, 104), (198, 164, 72)],
+    },
+    {
+        "naam": "Storm",
+        "punten": "Stormpunten",
+        "luckcoins": "Stormluck",
+        "reeksen": ["Blik", "Dreun", "Wolk", "Regen"],
+        "goud_reeksen": ["Goudblik", "Gouddreun", "Goudwolk", "Goudregen"],
+        "kleuren": [(52, 92, 140), (68, 120, 170), (90, 142, 188), (60, 102, 154)],
+        "goud_kleuren": [(170, 150, 60), (198, 176, 82), (222, 194, 98), (184, 164, 70)],
+    },
+    {
+        "naam": "Droom",
+        "punten": "Droempunten",
+        "luckcoins": "Droemluck",
+        "reeksen": ["Slaap", "Maan", "Wens", "Nevel"],
+        "goud_reeksen": ["Goudslaap", "Goudmaan", "Goudwens", "Goudnevel"],
+        "kleuren": [(100, 70, 150), (132, 86, 180), (168, 102, 206), (118, 90, 170)],
+        "goud_kleuren": [(176, 150, 68), (210, 180, 90), (236, 204, 112), (190, 164, 76)],
+    },
+]
 
 
-def maak_kaarten(goud=False):
+def maak_wereld_thema(wereld_nummer):
+    """Geef het thema van een wereld."""
+    index = max(1, int(wereld_nummer)) - 1
+    basis = WERELD_THEMAS[index % len(WERELD_THEMAS)]
+    ronde = index // len(WERELD_THEMAS) + 1
+    naam = basis["naam"] if ronde == 1 else f"{basis['naam']} {ronde}"
+    punten = basis["punten"] if ronde == 1 else f"{basis['punten']} {ronde}"
+    luckcoins = basis["luckcoins"] if ronde == 1 else f"{basis['luckcoins']} {ronde}"
+    reeksen = basis["reeksen"] if ronde == 1 else [f"{reeks}{ronde}" for reeks in basis["reeksen"]]
+    goud_reeksen = basis["goud_reeksen"] if ronde == 1 else [f"{reeks}{ronde}" for reeks in basis["goud_reeksen"]]
+    return {
+        "nummer": index + 1,
+        "naam": naam,
+        "punten": punten,
+        "luckcoins": luckcoins,
+        "reeksen": reeksen,
+        "goud_reeksen": goud_reeksen,
+        "kleuren": basis["kleuren"],
+        "goud_kleuren": basis["goud_kleuren"],
+    }
+
+
+def bereken_wereld_kosten(wereld_nummer):
+    """Geef hoeveel punten je nodig hebt voor de volgende wereld."""
+    if wereld_nummer <= 1:
+        return 0
+    return WERELD_BASISPRIJS * (1000 ** (wereld_nummer - 2))
+
+
+def maak_kaarten(goud=False, wereld_nummer=1):
     """Maak een deck met 48 nummerkaarten: 1 t/m 12, vier keer."""
-    if goud:
-        kaart_kleuren = [
-            ("Goudmaan", (188, 146, 44)),
-            ("Goudmist", (205, 160, 52)),
-            ("Goudspook", (222, 176, 58)),
-            ("Goudnacht", (238, 194, 70)),
-        ]
-    else:
-        kaart_kleuren = [
-            ("Maan", (78, 42, 98)),
-            ("Mist", (118, 34, 72)),
-            ("Spook", (92, 28, 122)),
-            ("Nacht", (60, 80, 130)),
-        ]
+    thema = maak_wereld_thema(wereld_nummer)
+    reeksen = thema["goud_reeksen"] if goud else thema["reeksen"]
+    kleuren = thema["goud_kleuren"] if goud else thema["kleuren"]
+    kaart_kleuren = list(zip(reeksen, kleuren))
     kaarten = []
 
     for reeks, kleur in kaart_kleuren:
         for nummer in range(1, 13):
             kaarten.append(
                 {
-                    "titel": f"{'Gouden ' if goud else ''}kaart {nummer}",
+                    "titel": f"{'Gouden ' if goud else ''}{thema['naam']} kaart {nummer}",
                     "uitleg": beschrijf_kaart(nummer, goud),
                     "reeks": reeks,
                     "nummer": nummer,
@@ -196,11 +272,12 @@ def sleutels_van_bewaar_data(data):
     return {(str(reeks), int(nummer)) for reeks, nummer in data}
 
 
-def maak_nieuwe_speltoestand():
-    """Maak een nieuwe, lege speltoestand."""
-    kaarten = maak_kaarten()
-    gouden_kaarten = maak_kaarten(goud=True)
+def maak_nieuwe_wereldtoestand(wereld_nummer):
+    """Maak een nieuwe, lege wereld."""
+    kaarten = maak_kaarten(wereld_nummer=wereld_nummer)
+    gouden_kaarten = maak_kaarten(goud=True, wereld_nummer=wereld_nummer)
     return {
+        "wereld_nummer": int(wereld_nummer),
         "punten": START_PUNTEN * 10,
         "klik_kracht": START_KLIK_KRACHT,
         "auto_spoken": START_AUTO_SPOKEN,
@@ -208,8 +285,6 @@ def maak_nieuwe_speltoestand():
         "luckshop_pagina": 0,
         "multiplier": 10,
         "luckcoins": 0,
-        "klik_animatie": 0,
-        "teller": 0,
         "auto_punten_buffer": 0,
         "luckcoin_buffer": 0,
         "kaarten": kaarten,
@@ -224,8 +299,72 @@ def maak_nieuwe_speltoestand():
         "laatste_luckshop_resultaat": f"Open de luckshop en koop punten x{format_getal(LUCKSHOP_START_FACTOR)}",
         "getrokken_kaart_sleutels": set(),
         "getrokken_gouden_kaart_sleutels": set(),
-        "kaart_overzicht_open": False,
-        "opslaan_timer": 0,
+    }
+
+
+def maak_nieuwe_speltoestand():
+    """Maak een nieuwe, lege opslag met wereld 1."""
+    return {"actieve_wereld": 1, "werelden": [maak_nieuwe_wereldtoestand(1)]}
+
+
+def laad_wereldtoestand_uit_data(data, wereld_nummer):
+    """Laad 1 wereld uit opslagdata."""
+    wereldtoestand = maak_nieuwe_wereldtoestand(wereld_nummer)
+    kaart_lookup = maak_kaart_lookup(wereldtoestand["kaarten"], wereldtoestand["gouden_kaarten"])
+
+    wereldtoestand["punten"] = int(data.get("punten", wereldtoestand["punten"]))
+    wereldtoestand["klik_kracht"] = int(data.get("klik_kracht", wereldtoestand["klik_kracht"]))
+    wereldtoestand["auto_spoken"] = int(data.get("auto_spoken", wereldtoestand["auto_spoken"]))
+    wereldtoestand["shop_pagina"] = max(0, int(data.get("shop_pagina", wereldtoestand["shop_pagina"])))
+    wereldtoestand["luckshop_pagina"] = max(0, int(data.get("luckshop_pagina", wereldtoestand["luckshop_pagina"])))
+    wereldtoestand["multiplier"] = max(1, int(data.get("multiplier", wereldtoestand["multiplier"])))
+    wereldtoestand["luckcoins"] = max(0, int(data.get("luckcoins", wereldtoestand["luckcoins"])))
+    wereldtoestand["auto_punten_buffer"] = max(0, int(data.get("auto_punten_buffer", 0)))
+    wereldtoestand["luckcoin_buffer"] = max(0, int(data.get("luckcoin_buffer", 0)))
+    wereldtoestand["kaart_trekkingen"] = max(0, int(data.get("kaart_trekkingen", 0)))
+    wereldtoestand["laatste_kaart_resultaat"] = str(data.get("laatste_kaart_resultaat", ""))
+    wereldtoestand["laatste_gouden_kaart_resultaat"] = str(data.get("laatste_gouden_kaart_resultaat", ""))
+    wereldtoestand["laatste_luckshop_resultaat"] = str(data.get("laatste_luckshop_resultaat", wereldtoestand["laatste_luckshop_resultaat"]))
+
+    if "kaarten_stapel" in data:
+        wereldtoestand["kaarten_stapel"] = [kaart_van_bewaar_data(kaart, kaart_lookup) for kaart in data["kaarten_stapel"]]
+    if "gouden_kaarten_stapel" in data:
+        wereldtoestand["gouden_kaarten_stapel"] = [kaart_van_bewaar_data(kaart, kaart_lookup) for kaart in data["gouden_kaarten_stapel"]]
+    if "laatste_kaart" in data:
+        wereldtoestand["laatste_kaart"] = kaart_van_bewaar_data(data["laatste_kaart"], kaart_lookup)
+    if "laatste_gouden_kaart" in data:
+        wereldtoestand["laatste_gouden_kaart"] = kaart_van_bewaar_data(data["laatste_gouden_kaart"], kaart_lookup)
+    if "getrokken_kaart_sleutels" in data:
+        wereldtoestand["getrokken_kaart_sleutels"] = sleutels_van_bewaar_data(data["getrokken_kaart_sleutels"])
+    if "getrokken_gouden_kaart_sleutels" in data:
+        wereldtoestand["getrokken_gouden_kaart_sleutels"] = sleutels_van_bewaar_data(data["getrokken_gouden_kaart_sleutels"])
+
+    return wereldtoestand
+
+
+def wereld_naar_bewaar_data(wereldtoestand):
+    """Zet 1 wereld om naar opslagdata."""
+    return {
+        "wereld_nummer": int(wereldtoestand["wereld_nummer"]),
+        "punten": int(wereldtoestand["punten"]),
+        "klik_kracht": int(wereldtoestand["klik_kracht"]),
+        "auto_spoken": int(wereldtoestand["auto_spoken"]),
+        "shop_pagina": int(wereldtoestand["shop_pagina"]),
+        "luckshop_pagina": int(wereldtoestand["luckshop_pagina"]),
+        "multiplier": int(wereldtoestand["multiplier"]),
+        "luckcoins": int(wereldtoestand["luckcoins"]),
+        "auto_punten_buffer": int(wereldtoestand["auto_punten_buffer"]),
+        "luckcoin_buffer": int(wereldtoestand["luckcoin_buffer"]),
+        "kaart_trekkingen": int(wereldtoestand["kaart_trekkingen"]),
+        "laatste_kaart": kaart_naar_bewaar_data(wereldtoestand["laatste_kaart"]),
+        "laatste_kaart_resultaat": wereldtoestand["laatste_kaart_resultaat"],
+        "laatste_gouden_kaart": kaart_naar_bewaar_data(wereldtoestand["laatste_gouden_kaart"]),
+        "laatste_gouden_kaart_resultaat": wereldtoestand["laatste_gouden_kaart_resultaat"],
+        "laatste_luckshop_resultaat": wereldtoestand["laatste_luckshop_resultaat"],
+        "getrokken_kaart_sleutels": sleutels_naar_bewaar_data(wereldtoestand["getrokken_kaart_sleutels"]),
+        "getrokken_gouden_kaart_sleutels": sleutels_naar_bewaar_data(wereldtoestand["getrokken_gouden_kaart_sleutels"]),
+        "kaarten_stapel": [kaart_naar_bewaar_data(kaart) for kaart in wereldtoestand["kaarten_stapel"]],
+        "gouden_kaarten_stapel": [kaart_naar_bewaar_data(kaart) for kaart in wereldtoestand["gouden_kaarten_stapel"]],
     }
 
 
@@ -235,92 +374,40 @@ def laad_speltoestand():
     if not OPSLAAN_BESTAND.exists():
         return speltoestand
 
-    kaart_lookup = maak_kaart_lookup(speltoestand["kaarten"], speltoestand["gouden_kaarten"])
-
     try:
         with OPSLAAN_BESTAND.open("r", encoding="utf-8") as bestand:
             data = json.load(bestand)
 
-        if int(data.get("versie", 0)) != OPSLAAN_VERSIE:
+        versie = int(data.get("versie", 0))
+        if versie == 1:
+            return {"actieve_wereld": 1, "werelden": [laad_wereldtoestand_uit_data(data, 1)]}
+        if versie != OPSLAAN_VERSIE:
             print("De oude opslag past niet meer. Het spel start opnieuw.")
             return speltoestand
 
-        speltoestand["punten"] = int(data.get("punten", speltoestand["punten"]))
-        speltoestand["klik_kracht"] = int(data.get("klik_kracht", speltoestand["klik_kracht"]))
-        speltoestand["auto_spoken"] = int(data.get("auto_spoken", speltoestand["auto_spoken"]))
-        speltoestand["shop_pagina"] = max(0, int(data.get("shop_pagina", speltoestand["shop_pagina"])))
-        speltoestand["luckshop_pagina"] = max(0, int(data.get("luckshop_pagina", speltoestand["luckshop_pagina"])))
-        speltoestand["multiplier"] = max(1, int(data.get("multiplier", speltoestand["multiplier"])))
-        speltoestand["luckcoins"] = max(0, int(data.get("luckcoins", speltoestand["luckcoins"])))
-        speltoestand["auto_punten_buffer"] = max(0, int(data.get("auto_punten_buffer", 0)))
-        speltoestand["luckcoin_buffer"] = max(0, int(data.get("luckcoin_buffer", 0)))
-        speltoestand["kaart_trekkingen"] = max(0, int(data.get("kaart_trekkingen", 0)))
-        speltoestand["laatste_kaart_resultaat"] = str(data.get("laatste_kaart_resultaat", ""))
-        speltoestand["laatste_gouden_kaart_resultaat"] = str(data.get("laatste_gouden_kaart_resultaat", ""))
-        speltoestand["laatste_luckshop_resultaat"] = str(data.get("laatste_luckshop_resultaat", speltoestand["laatste_luckshop_resultaat"]))
+        werelden_data = data.get("werelden", [])
+        if not werelden_data:
+            return speltoestand
 
-        if "kaarten_stapel" in data:
-            speltoestand["kaarten_stapel"] = [kaart_van_bewaar_data(kaart, kaart_lookup) for kaart in data["kaarten_stapel"]]
-        if "gouden_kaarten_stapel" in data:
-            speltoestand["gouden_kaarten_stapel"] = [kaart_van_bewaar_data(kaart, kaart_lookup) for kaart in data["gouden_kaarten_stapel"]]
-        if "laatste_kaart" in data:
-            speltoestand["laatste_kaart"] = kaart_van_bewaar_data(data["laatste_kaart"], kaart_lookup)
-        if "laatste_gouden_kaart" in data:
-            speltoestand["laatste_gouden_kaart"] = kaart_van_bewaar_data(data["laatste_gouden_kaart"], kaart_lookup)
-        if "getrokken_kaart_sleutels" in data:
-            speltoestand["getrokken_kaart_sleutels"] = sleutels_van_bewaar_data(data["getrokken_kaart_sleutels"])
-        if "getrokken_gouden_kaart_sleutels" in data:
-            speltoestand["getrokken_gouden_kaart_sleutels"] = sleutels_van_bewaar_data(data["getrokken_gouden_kaart_sleutels"])
+        werelden = []
+        for index, wereld_data in enumerate(werelden_data, start=1):
+            wereld_nummer = max(index, int(wereld_data.get("wereld_nummer", index)))
+            werelden.append(laad_wereldtoestand_uit_data(wereld_data, wereld_nummer))
+
+        actieve_wereld = int(data.get("actieve_wereld", 1))
+        actieve_wereld = min(max(1, actieve_wereld), len(werelden))
+        return {"actieve_wereld": actieve_wereld, "werelden": werelden}
     except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as fout:
         print(f"Opslag laden mislukte: {fout}")
         return maak_nieuwe_speltoestand()
 
-    return speltoestand
 
-
-def sla_spel_op(
-    punten,
-    klik_kracht,
-    auto_spoken,
-    shop_pagina,
-    luckshop_pagina,
-    multiplier,
-    luckcoins,
-    auto_punten_buffer,
-    luckcoin_buffer,
-    kaart_trekkingen,
-    laatste_kaart,
-    laatste_kaart_resultaat,
-    laatste_gouden_kaart,
-    laatste_gouden_kaart_resultaat,
-    laatste_luckshop_resultaat,
-    getrokken_kaart_sleutels,
-    getrokken_gouden_kaart_sleutels,
-    kaarten_stapel,
-    gouden_kaarten_stapel,
-):
-    """Sla de voortgang veilig op in een JSON-bestand."""
+def sla_spel_op(actieve_wereld, werelden):
+    """Sla alle werelden veilig op in een JSON-bestand."""
     opslag_data = {
         "versie": OPSLAAN_VERSIE,
-        "punten": int(punten),
-        "klik_kracht": int(klik_kracht),
-        "auto_spoken": int(auto_spoken),
-        "shop_pagina": int(shop_pagina),
-        "luckshop_pagina": int(luckshop_pagina),
-        "multiplier": int(multiplier),
-        "luckcoins": int(luckcoins),
-        "auto_punten_buffer": int(auto_punten_buffer),
-        "luckcoin_buffer": int(luckcoin_buffer),
-        "kaart_trekkingen": int(kaart_trekkingen),
-        "laatste_kaart": kaart_naar_bewaar_data(laatste_kaart),
-        "laatste_kaart_resultaat": laatste_kaart_resultaat,
-        "laatste_gouden_kaart": kaart_naar_bewaar_data(laatste_gouden_kaart),
-        "laatste_gouden_kaart_resultaat": laatste_gouden_kaart_resultaat,
-        "laatste_luckshop_resultaat": laatste_luckshop_resultaat,
-        "getrokken_kaart_sleutels": sleutels_naar_bewaar_data(getrokken_kaart_sleutels),
-        "getrokken_gouden_kaart_sleutels": sleutels_naar_bewaar_data(getrokken_gouden_kaart_sleutels),
-        "kaarten_stapel": [kaart_naar_bewaar_data(kaart) for kaart in kaarten_stapel],
-        "gouden_kaarten_stapel": [kaart_naar_bewaar_data(kaart) for kaart in gouden_kaarten_stapel],
+        "actieve_wereld": int(actieve_wereld),
+        "werelden": [wereld_naar_bewaar_data(wereldtoestand) for wereldtoestand in werelden],
     }
 
     tijdelijk_bestand = OPSLAAN_BESTAND.with_suffix(".tmp")
@@ -341,34 +428,31 @@ def wis_opslagbestand():
         print(f"Opslag wissen mislukte: {fout}")
 
 
-def pak_spelvariabelen(speltoestand):
-    """Haal alle spelwaarden uit 1 speltoestand."""
+def pak_wereldvariabelen(wereldtoestand):
+    """Haal alle spelwaarden uit 1 wereld."""
     return (
-        speltoestand["punten"],
-        speltoestand["klik_kracht"],
-        speltoestand["auto_spoken"],
-        speltoestand["shop_pagina"],
-        speltoestand["luckshop_pagina"],
-        speltoestand["multiplier"],
-        speltoestand["luckcoins"],
-        speltoestand["klik_animatie"],
-        speltoestand["teller"],
-        speltoestand["auto_punten_buffer"],
-        speltoestand["luckcoin_buffer"],
-        speltoestand["kaarten"],
-        speltoestand["kaarten_stapel"],
-        speltoestand["gouden_kaarten"],
-        speltoestand["gouden_kaarten_stapel"],
-        speltoestand["kaart_trekkingen"],
-        speltoestand["laatste_kaart"],
-        speltoestand["laatste_kaart_resultaat"],
-        speltoestand["laatste_gouden_kaart"],
-        speltoestand["laatste_gouden_kaart_resultaat"],
-        speltoestand["laatste_luckshop_resultaat"],
-        speltoestand["getrokken_kaart_sleutels"],
-        speltoestand["getrokken_gouden_kaart_sleutels"],
-        speltoestand["kaart_overzicht_open"],
-        speltoestand["opslaan_timer"],
+        wereldtoestand["wereld_nummer"],
+        wereldtoestand["punten"],
+        wereldtoestand["klik_kracht"],
+        wereldtoestand["auto_spoken"],
+        wereldtoestand["shop_pagina"],
+        wereldtoestand["luckshop_pagina"],
+        wereldtoestand["multiplier"],
+        wereldtoestand["luckcoins"],
+        wereldtoestand["auto_punten_buffer"],
+        wereldtoestand["luckcoin_buffer"],
+        wereldtoestand["kaarten"],
+        wereldtoestand["kaarten_stapel"],
+        wereldtoestand["gouden_kaarten"],
+        wereldtoestand["gouden_kaarten_stapel"],
+        wereldtoestand["kaart_trekkingen"],
+        wereldtoestand["laatste_kaart"],
+        wereldtoestand["laatste_kaart_resultaat"],
+        wereldtoestand["laatste_gouden_kaart"],
+        wereldtoestand["laatste_gouden_kaart_resultaat"],
+        wereldtoestand["laatste_luckshop_resultaat"],
+        wereldtoestand["getrokken_kaart_sleutels"],
+        wereldtoestand["getrokken_gouden_kaart_sleutels"],
     )
 
 
@@ -867,7 +951,7 @@ def maak_shop_vakken(paneel_rect):
     """Maak 8 vakken voor de shop (2 kolommen van 4)."""
     vakken = []
     start_x = paneel_rect.x + 16
-    start_y = paneel_rect.y + 236
+    start_y = paneel_rect.y + 254
     breedte = 129
     hoogte = 52
     tussenruimte_x = 10
@@ -1181,6 +1265,121 @@ def teken_echte_reset_waarschuwing(scherm, overlay_rect, ja_rect, nee_rect, font
     )
 
 
+def teken_werelden_knop(scherm, rect, font):
+    """Teken de knop om het werelden-scherm te openen."""
+    pygame.draw.rect(scherm, KNOP_KLEUR, rect, border_radius=12)
+    pygame.draw.rect(scherm, KNOP_RAND, rect, 2, border_radius=12)
+    tekst = font.render("Werelden", True, TEKST_KLEUR)
+    scherm.blit(
+        tekst,
+        (rect.x + rect.width // 2 - tekst.get_width() // 2, rect.y + 7),
+    )
+
+
+def maak_wereld_vakken(overlay_rect):
+    """Maak vakken voor 4 werelden per pagina."""
+    vakken = []
+    start_x = overlay_rect.x + 20
+    start_y = overlay_rect.y + 100
+    breedte = 378
+    hoogte = 86
+    tussenruimte_x = 12
+    tussenruimte_y = 12
+
+    for rij in range(2):
+        for kolom in range(2):
+            vak_x = start_x + kolom * (breedte + tussenruimte_x)
+            vak_y = start_y + rij * (hoogte + tussenruimte_y)
+            vakken.append(pygame.Rect(vak_x, vak_y, breedte, hoogte))
+
+    return vakken
+
+
+def teken_wereld_knop(scherm, rect, wereld_nummer, actief, ontgrendeld, wereld_naam, wereld_punten, font, font_klein):
+    """Teken 1 wereldknop in het overzicht."""
+    kleur = KNOP_KLEUR if ontgrendeld else KNOP_UIT
+    rand = GEEL if actief else KNOP_RAND if ontgrendeld else PANEEL_RAND
+    pygame.draw.rect(scherm, kleur, rect, border_radius=16)
+    pygame.draw.rect(scherm, rand, rect, 3 if actief else 2, border_radius=16)
+
+    titel = font.render(maak_passende_tekst(font, f"Wereld {format_getal(wereld_nummer)}: {wereld_naam}", rect.width - 20), True, TEKST_KLEUR)
+    status_regel = "Actief" if actief else "Ga naar deze wereld" if ontgrendeld else "Nog vergrendeld"
+    status = font_klein.render(maak_passende_tekst(font_klein, status_regel, rect.width - 20), True, GEEL if actief else SUBTEKST_KLEUR)
+    punten_regel = font_klein.render(maak_passende_tekst(font_klein, f"Punten hier: {format_tienden(wereld_punten)}", rect.width - 20), True, SUBTEKST_KLEUR)
+    scherm.blit(titel, (rect.x + 10, rect.y + 8))
+    scherm.blit(status, (rect.x + 10, rect.y + 38))
+    scherm.blit(punten_regel, (rect.x + 10, rect.y + 58))
+
+
+def teken_werelden_overzicht(
+    scherm,
+    overlay_rect,
+    sluit_rect,
+    vorige_rect,
+    volgende_rect,
+    koop_rect,
+    wereld_vakken,
+    werelden,
+    actieve_wereld,
+    wereld_pagina,
+    koop_kosten,
+    huidig_wereld_punten,
+    font,
+    font_klein,
+):
+    """Teken het overzicht van alle werelden."""
+    dim = pygame.Surface((SCHERM_BREEDTE, SCHERM_HOOGTE), pygame.SRCALPHA)
+    dim.fill((0, 0, 0, 165))
+    scherm.blit(dim, (0, 0))
+
+    pygame.draw.rect(scherm, PANEEL_KLEUR, overlay_rect, border_radius=24)
+    pygame.draw.rect(scherm, PANEEL_RAND, overlay_rect, 4, border_radius=24)
+
+    titel = font.render("Werelden", True, TEKST_KLEUR)
+    uitleg = font_klein.render("Elke wereld heeft eigen punten, kaarten en luckcoins.", True, SUBTEKST_KLEUR)
+    scherm.blit(titel, (overlay_rect.x + 20, overlay_rect.y + 16))
+    scherm.blit(uitleg, (overlay_rect.x + 22, overlay_rect.y + 52))
+
+    pygame.draw.rect(scherm, KNOP_KLEUR, sluit_rect, border_radius=10)
+    pygame.draw.rect(scherm, KNOP_RAND, sluit_rect, 2, border_radius=10)
+    sluit_tekst = font_klein.render("Sluiten", True, TEKST_KLEUR)
+    scherm.blit(
+        sluit_tekst,
+        (sluit_rect.x + sluit_rect.width // 2 - sluit_tekst.get_width() // 2, sluit_rect.y + 6),
+    )
+
+    teken_pagina_knop(scherm, vorige_rect, "<", wereld_pagina > 0, font_klein)
+    teken_pagina_knop(scherm, volgende_rect, ">", (wereld_pagina + 1) * len(wereld_vakken) < len(werelden), font_klein)
+
+    start = wereld_pagina * len(wereld_vakken)
+    zichtbare_werelden = werelden[start : start + len(wereld_vakken)]
+    for wereldtoestand, rect in zip(zichtbare_werelden, wereld_vakken):
+        thema = maak_wereld_thema(wereldtoestand["wereld_nummer"])
+        teken_wereld_knop(
+            scherm,
+            rect,
+            wereldtoestand["wereld_nummer"],
+            wereldtoestand["wereld_nummer"] == actieve_wereld,
+            True,
+            thema["naam"],
+            wereldtoestand["punten"],
+            font_klein,
+            font_klein,
+        )
+
+    volgende_wereld = len(werelden) + 1
+    koop_kleur = KNOP_KLEUR if huidig_wereld_punten >= koop_kosten * 10 else KNOP_UIT
+    koop_rand = GEEL if huidig_wereld_punten >= koop_kosten * 10 else PANEEL_RAND
+    pygame.draw.rect(scherm, koop_kleur, koop_rect, border_radius=16)
+    pygame.draw.rect(scherm, koop_rand, koop_rect, 2, border_radius=16)
+    koop_titel = font_klein.render(f"Koop wereld {format_getal(volgende_wereld)}", True, TEKST_KLEUR)
+    koop_uitleg = font_klein.render(maak_passende_tekst(font_klein, f"Kost {format_getal(koop_kosten)} punten", koop_rect.width - 20), True, GEEL)
+    koop_hint = font_klein.render("Nieuwe punten, nieuwe kaarten en nieuwe luckcoins.", True, SUBTEKST_KLEUR)
+    scherm.blit(koop_titel, (koop_rect.x + 14, koop_rect.y + 10))
+    scherm.blit(koop_uitleg, (koop_rect.x + 14, koop_rect.y + 36))
+    scherm.blit(koop_hint, (koop_rect.x + 14, koop_rect.y + 60))
+
+
 def teken_luckshop_overzicht(
     scherm,
     overlay_rect,
@@ -1191,6 +1390,7 @@ def teken_luckshop_overzicht(
     luckshop_pagina,
     luckshop_vakken,
     luckcoins,
+    luckcoins_naam,
     laatste_luckshop_resultaat,
     font,
     font_klein,
@@ -1205,7 +1405,7 @@ def teken_luckshop_overzicht(
 
     titel = font.render("Luckshop", True, TEKST_KLEUR)
     uitleg = font_klein.render("Ruil luckcoins voor heel veel normale punten.", True, SUBTEKST_KLEUR)
-    luckcoins_tekst = font_klein.render(f"Luckcoins: {format_tienden(luckcoins)}", True, GEEL)
+    luckcoins_tekst = font_klein.render(maak_passende_tekst(font_klein, f"{luckcoins_naam}: {format_tienden(luckcoins)}", 330), True, GEEL)
     pagina_tekst = font_klein.render(f"Pagina {luckshop_pagina + 1}", True, SUBTEKST_KLEUR)
     resultaat_tekst = font_klein.render(maak_passende_tekst(font_klein, laatste_luckshop_resultaat, overlay_rect.width - 40), True, GEEL)
     scherm.blit(titel, (overlay_rect.x + 20, overlay_rect.y + 16))
@@ -1238,6 +1438,7 @@ def teken_kaart_paneel(
     luckshop_knop_rect,
     multiplier,
     luckcoins,
+    luckcoins_naam,
     luckshop_pagina,
     laatste_kaart,
     laatste_kaart_resultaat,
@@ -1340,7 +1541,7 @@ def teken_kaart_paneel(
         (luckshop_knop_rect.x + luckshop_knop_rect.width // 2 - luckshop_kosten.get_width() // 2, luckshop_knop_rect.y + 27),
     )
 
-    luckcoins_tekst = font_klein.render(maak_passende_tekst(font_klein, f"Luckcoins: {format_tienden(luckcoins)}", paneel_breedte), True, GEEL)
+    luckcoins_tekst = font_klein.render(maak_passende_tekst(font_klein, f"{luckcoins_naam}: {format_tienden(luckcoins)}", paneel_breedte), True, GEEL)
     luckshop_pagina_tekst = font_klein.render(maak_passende_tekst(font_klein, f"Luckshop pagina: {luckshop_pagina + 1}", paneel_breedte), True, SUBTEKST_KLEUR)
     luckshop_resultaat = font_klein.render(maak_passende_tekst(font_klein, laatste_luckshop_resultaat, paneel_breedte), True, GEEL if genoeg_luckcoins else SUBTEKST_KLEUR)
     scherm.blit(luckcoins_tekst, (paneel_rect.x + 18, paneel_rect.y + 342))
@@ -1498,54 +1699,99 @@ def speel():
     luckshop_vorige_pagina_knop = pygame.Rect(luckshop_overlay_rect.right - 196, luckshop_overlay_rect.y + 16, 36, 30)
     luckshop_volgende_pagina_knop = pygame.Rect(luckshop_overlay_rect.right - 152, luckshop_overlay_rect.y + 16, 36, 30)
     echte_reset_knop = pygame.Rect(18, 18, 122, 34)
+    werelden_knop = pygame.Rect(150, 18, 104, 34)
+    werelden_overlay_rect = pygame.Rect(70, 36, 820, 468)
+    sluit_werelden_overlay_rect = pygame.Rect(werelden_overlay_rect.right - 108, werelden_overlay_rect.y + 16, 88, 30)
+    werelden_vorige_pagina_knop = pygame.Rect(werelden_overlay_rect.right - 196, werelden_overlay_rect.y + 16, 36, 30)
+    werelden_volgende_pagina_knop = pygame.Rect(werelden_overlay_rect.right - 152, werelden_overlay_rect.y + 16, 36, 30)
+    koop_wereld_knop = pygame.Rect(werelden_overlay_rect.x + 20, werelden_overlay_rect.bottom - 96, werelden_overlay_rect.width - 40, 82)
     echte_reset_overlay_rect = pygame.Rect(245, 150, 470, 210)
     echte_reset_ja_rect = pygame.Rect(echte_reset_overlay_rect.x + 42, echte_reset_overlay_rect.bottom - 70, 170, 46)
     echte_reset_nee_rect = pygame.Rect(echte_reset_overlay_rect.right - 212, echte_reset_overlay_rect.bottom - 70, 170, 46)
     paneel_rect = pygame.Rect(620, 30, 300, 480)
     shop_vakken = maak_shop_vakken(paneel_rect)
-    vorige_pagina_knop = pygame.Rect(paneel_rect.x + 176, paneel_rect.y + 198, 32, 28)
-    volgende_pagina_knop = pygame.Rect(paneel_rect.x + 252, paneel_rect.y + 198, 32, 28)
+    vorige_pagina_knop = pygame.Rect(paneel_rect.x + 176, paneel_rect.y + 216, 32, 28)
+    volgende_pagina_knop = pygame.Rect(paneel_rect.x + 252, paneel_rect.y + 216, 32, 28)
     reset_knop = pygame.Rect(45, 415, 250, 74)
 
     # Spelvariabelen.
     speltoestand = laad_speltoestand()
-    (
-        punten,
-        klik_kracht,
-        auto_spoken,
-        shop_pagina,
-        luckshop_pagina,
-        multiplier,
-        luckcoins,
-        klik_animatie,
-        teller,
-        auto_punten_buffer,
-        luckcoin_buffer,
-        kaarten,
-        kaarten_stapel,
-        gouden_kaarten,
-        gouden_kaarten_stapel,
-        kaart_trekkingen,
-        laatste_kaart,
-        laatste_kaart_resultaat,
-        laatste_gouden_kaart,
-        laatste_gouden_kaart_resultaat,
-        laatste_luckshop_resultaat,
-        getrokken_kaart_sleutels,
-        getrokken_gouden_kaart_sleutels,
-        kaart_overzicht_open,
-        opslaan_timer,
-    ) = pak_spelvariabelen(speltoestand)
+    werelden = speltoestand["werelden"]
+    actieve_wereld = min(max(1, speltoestand["actieve_wereld"]), len(werelden))
+    wereld_nummer = 1
+    punten = START_PUNTEN * 10
+    klik_kracht = START_KLIK_KRACHT
+    auto_spoken = START_AUTO_SPOKEN
+    shop_pagina = 0
+    luckshop_pagina = 0
+    multiplier = 10
+    luckcoins = 0
+    auto_punten_buffer = 0
+    luckcoin_buffer = 0
+    kaarten = []
+    kaarten_stapel = []
+    gouden_kaarten = []
+    gouden_kaarten_stapel = []
+    kaart_trekkingen = 0
+    laatste_kaart = None
+    laatste_kaart_resultaat = ""
+    laatste_gouden_kaart = None
+    laatste_gouden_kaart_resultaat = ""
+    laatste_luckshop_resultaat = ""
+    getrokken_kaart_sleutels = set()
+    getrokken_gouden_kaart_sleutels = set()
+    klik_animatie = 0
+    teller = 0
+    kaart_overzicht_open = False
+    opslaan_timer = 0
     echte_reset_open = False
     luckshop_open = False
-    upgrades = maak_upgrades()
-    luckshop_upgrades = maak_luckshop_upgrades()
+    werelden_open = False
+    wereld_vakken = maak_wereld_vakken(werelden_overlay_rect)
+    wereld_pagina = 0
+    upgrades = []
+    luckshop_upgrades = []
     vakken_per_pagina = len(shop_vakken)
     luckshop_vakken = maak_luckshop_vakken(luckshop_overlay_rect)
 
-    def sla_huidige_voortgang_op():
-        """Bewaar de huidige voortgang van het spel."""
-        sla_spel_op(
+    def bewaar_actieve_wereld():
+        """Bewaar de actieve wereld terug in de wereldenlijst."""
+        werelden[actieve_wereld - 1] = {
+            "wereld_nummer": wereld_nummer,
+            "punten": punten,
+            "klik_kracht": klik_kracht,
+            "auto_spoken": auto_spoken,
+            "shop_pagina": shop_pagina,
+            "luckshop_pagina": luckshop_pagina,
+            "multiplier": multiplier,
+            "luckcoins": luckcoins,
+            "auto_punten_buffer": auto_punten_buffer,
+            "luckcoin_buffer": luckcoin_buffer,
+            "kaarten": kaarten,
+            "kaarten_stapel": kaarten_stapel,
+            "gouden_kaarten": gouden_kaarten,
+            "gouden_kaarten_stapel": gouden_kaarten_stapel,
+            "kaart_trekkingen": kaart_trekkingen,
+            "laatste_kaart": laatste_kaart,
+            "laatste_kaart_resultaat": laatste_kaart_resultaat,
+            "laatste_gouden_kaart": laatste_gouden_kaart,
+            "laatste_gouden_kaart_resultaat": laatste_gouden_kaart_resultaat,
+            "laatste_luckshop_resultaat": laatste_luckshop_resultaat,
+            "getrokken_kaart_sleutels": getrokken_kaart_sleutels,
+            "getrokken_gouden_kaart_sleutels": getrokken_gouden_kaart_sleutels,
+        }
+
+    def laad_actieve_wereld():
+        """Laad de actieve wereld in de losse spelvariabelen."""
+        nonlocal wereld_nummer, punten, klik_kracht, auto_spoken, shop_pagina, luckshop_pagina
+        nonlocal multiplier, luckcoins, auto_punten_buffer, luckcoin_buffer, kaarten, kaarten_stapel
+        nonlocal gouden_kaarten, gouden_kaarten_stapel, kaart_trekkingen, laatste_kaart
+        nonlocal laatste_kaart_resultaat, laatste_gouden_kaart, laatste_gouden_kaart_resultaat
+        nonlocal laatste_luckshop_resultaat, getrokken_kaart_sleutels, getrokken_gouden_kaart_sleutels
+        nonlocal upgrades, luckshop_upgrades, klik_animatie
+
+        (
+            wereld_nummer,
             punten,
             klik_kracht,
             auto_spoken,
@@ -1555,6 +1801,10 @@ def speel():
             luckcoins,
             auto_punten_buffer,
             luckcoin_buffer,
+            kaarten,
+            kaarten_stapel,
+            gouden_kaarten,
+            gouden_kaarten_stapel,
             kaart_trekkingen,
             laatste_kaart,
             laatste_kaart_resultaat,
@@ -1563,9 +1813,29 @@ def speel():
             laatste_luckshop_resultaat,
             getrokken_kaart_sleutels,
             getrokken_gouden_kaart_sleutels,
-            kaarten_stapel,
-            gouden_kaarten_stapel,
-        )
+        ) = pak_wereldvariabelen(werelden[actieve_wereld - 1])
+        upgrades = maak_upgrades()
+        luckshop_upgrades = maak_luckshop_upgrades()
+        klik_animatie = 0
+
+    def wissel_naar_wereld(nieuwe_wereld):
+        """Ga naar een andere wereld."""
+        nonlocal actieve_wereld, wereld_pagina, kaart_overzicht_open, luckshop_open, werelden_open
+        bewaar_actieve_wereld()
+        actieve_wereld = nieuwe_wereld
+        wereld_pagina = (actieve_wereld - 1) // len(wereld_vakken)
+        kaart_overzicht_open = False
+        luckshop_open = False
+        werelden_open = False
+        laad_actieve_wereld()
+
+    def sla_huidige_voortgang_op():
+        """Bewaar alle werelden in het opslagbestand."""
+        bewaar_actieve_wereld()
+        sla_spel_op(actieve_wereld, werelden)
+
+    laad_actieve_wereld()
+    wereld_pagina = (actieve_wereld - 1) // len(wereld_vakken)
 
     while True:
         delta_ms = klok.tick(FPS)
@@ -1594,40 +1864,45 @@ def speel():
                     if echte_reset_ja_rect.collidepoint(muis_pos):
                         wis_opslagbestand()
                         speltoestand = maak_nieuwe_speltoestand()
-                        (
-                            punten,
-                            klik_kracht,
-                            auto_spoken,
-                            shop_pagina,
-                            luckshop_pagina,
-                            multiplier,
-                            luckcoins,
-                            klik_animatie,
-                            teller,
-                            auto_punten_buffer,
-                            luckcoin_buffer,
-                            kaarten,
-                            kaarten_stapel,
-                            gouden_kaarten,
-                            gouden_kaarten_stapel,
-                            kaart_trekkingen,
-                            laatste_kaart,
-                            laatste_kaart_resultaat,
-                            laatste_gouden_kaart,
-                            laatste_gouden_kaart_resultaat,
-                            laatste_luckshop_resultaat,
-                            getrokken_kaart_sleutels,
-                            getrokken_gouden_kaart_sleutels,
-                            kaart_overzicht_open,
-                            opslaan_timer,
-                        ) = pak_spelvariabelen(speltoestand)
-                        upgrades = maak_upgrades()
-                        luckshop_upgrades = maak_luckshop_upgrades()
+                        werelden = speltoestand["werelden"]
+                        actieve_wereld = 1
+                        teller = 0
+                        opslaan_timer = 0
+                        kaart_overzicht_open = False
                         echte_reset_open = False
                         luckshop_open = False
+                        werelden_open = False
+                        laad_actieve_wereld()
+                        wereld_pagina = 0
                         sla_huidige_voortgang_op()
                     elif echte_reset_nee_rect.collidepoint(muis_pos):
                         echte_reset_open = False
+                    continue
+
+                if werelden_open:
+                    if sluit_werelden_overlay_rect.collidepoint(muis_pos) or werelden_knop.collidepoint(muis_pos):
+                        werelden_open = False
+                    elif werelden_vorige_pagina_knop.collidepoint(muis_pos) and wereld_pagina > 0:
+                        wereld_pagina -= 1
+                    elif werelden_volgende_pagina_knop.collidepoint(muis_pos):
+                        max_pagina = max(0, (len(werelden) - 1) // len(wereld_vakken))
+                        if wereld_pagina < max_pagina:
+                            wereld_pagina += 1
+                    elif koop_wereld_knop.collidepoint(muis_pos):
+                        volgende_wereld = len(werelden) + 1
+                        koop_kosten = bereken_wereld_kosten(volgende_wereld)
+                        if punten >= koop_kosten * 10:
+                            punten -= koop_kosten * 10
+                            bewaar_actieve_wereld()
+                            werelden.append(maak_nieuwe_wereldtoestand(volgende_wereld))
+                            wissel_naar_wereld(volgende_wereld)
+                    else:
+                        start = wereld_pagina * len(wereld_vakken)
+                        zichtbare_werelden = werelden[start : start + len(wereld_vakken)]
+                        for wereldtoestand, rect in zip(zichtbare_werelden, wereld_vakken):
+                            if rect.collidepoint(muis_pos) and wereldtoestand["wereld_nummer"] != actieve_wereld:
+                                wissel_naar_wereld(wereldtoestand["wereld_nummer"])
+                                break
                     continue
 
                 if luckshop_open:
@@ -1655,6 +1930,11 @@ def speel():
 
                 if echte_reset_knop.collidepoint(muis_pos):
                     echte_reset_open = True
+                    continue
+
+                if werelden_knop.collidepoint(muis_pos):
+                    werelden_open = True
+                    wereld_pagina = (actieve_wereld - 1) // len(wereld_vakken)
                     continue
 
                 # Klik op de smiley voor punten.
@@ -1755,13 +2035,16 @@ def speel():
             opslaan_timer = 0
 
         teken_achtergrond(scherm, teller)
+        wereld_thema = maak_wereld_thema(wereld_nummer)
+        koop_kosten = bereken_wereld_kosten(len(werelden) + 1)
 
         # Titel en uitleg linksboven.
-        titel = font_groot.render("Eng Spel", True, TEKST_KLEUR)
-        uitleg = font_klein.render("Klik op de enge smiley en verzamel punten!", True, SUBTEKST_KLEUR)
+        titel = font_groot.render(maak_passende_tekst(font_groot, f"Eng Spel - Wereld {format_getal(wereld_nummer)}", 320), True, TEKST_KLEUR)
+        uitleg = font_klein.render(maak_passende_tekst(font_klein, f"{wereld_thema['naam']} - klik op de enge smiley!", 320), True, SUBTEKST_KLEUR)
         teken_echte_reset_knop(scherm, echte_reset_knop, font_shop)
-        scherm.blit(titel, (160, 20))
-        scherm.blit(uitleg, (162, 68))
+        teken_werelden_knop(scherm, werelden_knop, font_shop)
+        scherm.blit(titel, (276, 18))
+        scherm.blit(uitleg, (278, 64))
 
         # Teken de smiley.
         teken_poppetje(scherm, poppetje_rect, teller, klik_animatie, punten)
@@ -1773,6 +2056,7 @@ def speel():
             luckshop_knop_rect,
             multiplier,
             luckcoins,
+            wereld_thema["luckcoins"],
             luckshop_pagina,
             laatste_kaart,
             laatste_kaart_resultaat,
@@ -1791,22 +2075,24 @@ def speel():
         # Teken het informatiepaneel.
         teken_paneel(scherm, paneel_rect)
 
-        punten_tekst = font_groot.render(f"Punten: {format_tienden(punten)}", True, TEKST_KLEUR)
+        punten_tekst = font_groot.render(maak_passende_tekst(font_groot, f"{wereld_thema['punten']}: {format_tienden(punten)}", 260), True, TEKST_KLEUR)
         klik_tekst = font_middel.render(f"Per klik: {format_tienden(klik_kracht * multiplier)}", True, GEEL)
         auto_tekst = font_middel.render(f"Per seconde: {format_tienden(auto_spoken * multiplier)}", True, ROZE)
         multiplier_tekst = font_klein.render(f"Multiplier: x{format_tienden(multiplier)}", True, GEEL)
         eng_kracht = bereken_eng_niveau(punten)
+        wereld_tekst = font_klein.render(maak_passende_tekst(font_klein, f"Wereldnaam: {wereld_thema['naam']}", 250), True, SUBTEKST_KLEUR)
         eng_tekst = font_klein.render(f"Eng kracht: {format_getal(eng_kracht)}", True, SUBTEKST_KLEUR)
         scherm.blit(punten_tekst, (paneel_rect.x + 20, 48))
         scherm.blit(klik_tekst, (paneel_rect.x + 20, 104))
         scherm.blit(auto_tekst, (paneel_rect.x + 20, 140))
         scherm.blit(multiplier_tekst, (paneel_rect.x + 20, 178))
-        scherm.blit(eng_tekst, (paneel_rect.x + 20, 202))
+        scherm.blit(wereld_tekst, (paneel_rect.x + 20, 202))
+        scherm.blit(eng_tekst, (paneel_rect.x + 20, 222))
 
         winkel_tekst = font_middel.render("Shop", True, TEKST_KLEUR)
         pagina_tekst = font_klein.render(f"Pagina {shop_pagina + 1}", True, SUBTEKST_KLEUR)
-        scherm.blit(winkel_tekst, (paneel_rect.x + 20, 226))
-        scherm.blit(pagina_tekst, (paneel_rect.x + 210, 232))
+        scherm.blit(winkel_tekst, (paneel_rect.x + 20, 244))
+        scherm.blit(pagina_tekst, (paneel_rect.x + 210, 250))
 
         teken_pagina_knop(scherm, vorige_pagina_knop, "<", shop_pagina > 0, font_klein)
         teken_pagina_knop(scherm, volgende_pagina_knop, ">", True, font_klein)
@@ -1817,7 +2103,7 @@ def speel():
             teken_shop_knop(scherm, rect, upgrade, punten, font_shop, font_shop_klein)
 
         # Kleine tip onderaan.
-        tip = font_klein.render("Tip: trek kaarten voor zotte multiplier-bonussen!", True, SUBTEKST_KLEUR)
+        tip = font_klein.render("Tip: koop nieuwe werelden voor nieuwe kaarten!", True, SUBTEKST_KLEUR)
         scherm.blit(tip, (38, 505))
 
         if kaart_overzicht_open:
@@ -1844,7 +2130,26 @@ def speel():
                 luckshop_pagina,
                 luckshop_vakken,
                 luckcoins,
+                wereld_thema["luckcoins"],
                 laatste_luckshop_resultaat,
+                font_klein,
+                font_shop,
+            )
+
+        if werelden_open:
+            teken_werelden_overzicht(
+                scherm,
+                werelden_overlay_rect,
+                sluit_werelden_overlay_rect,
+                werelden_vorige_pagina_knop,
+                werelden_volgende_pagina_knop,
+                koop_wereld_knop,
+                wereld_vakken,
+                werelden,
+                actieve_wereld,
+                wereld_pagina,
+                koop_kosten,
+                punten,
                 font_klein,
                 font_shop,
             )

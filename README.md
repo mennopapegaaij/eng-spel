@@ -10,6 +10,10 @@ Een simpel clicker-spel in Python met `pygame`.
 - Koop `Mega klik` voor nog veel meer punten per klik
 - Koop `Mega spook` voor nog meer automatische punten per seconde
 - Er zijn nu oneindig veel shop-dingen verdeeld over oneindig veel pagina's
+- Er zijn nu ook oneindig veel `werelden`
+- Voor `wereld 2` heb je `1000000000000000000000000000000000000000000000000000000000000000000` punten nodig
+- Elke wereld heeft zijn eigen punten, kaarten, luckcoins en shop-pagina's
+- Elke nieuwe wereld heeft een ander thema dan de vorige wereld
 - Trek gratis kaarten bij multiplier-milestones zoals `x10`, `x100`, `x1000` en verder
 - Het deck heeft nu 48 random kaarten: nummers `1` t/m `12`, en elke kaart zit er `4` keer in
 - Met `Bekijk kaarten` kun je zien welke kaarten je al hebt en welke nog missen
@@ -41,4 +45,5 @@ python main.py
 - De shop springt vanzelf naar de verste bladzijde waar je iets kunt betalen
 - Linkermuisknop op `Reset` = opnieuw beginnen; binnen 1 ronde wordt de bonus steeds duurder, maar na reset begint dat weer opnieuw
 - Linkermuisknop op `Echte reset` linksboven = alles wissen en weer echt vanaf 0 beginnen
+- Linkermuisknop op `Werelden` = werelden bekijken, kopen en wisselen
 - Als het normale deck leeg is, krijg je eerst 1 gouden kaart en daarna begint het normale deck opnieuw
