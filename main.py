@@ -1214,6 +1214,42 @@ def teken_shop_knop(scherm, rect, upgrade, punten, font_titel, font_klein):
     scherm.blit(kosten_tekst, (rect.x + 8, rect.y + 35))
 
 
+def teken_shop_doel_knop(scherm, rect, actieve_wereld, koop_voor_vorige_wereld, font):
+    """Teken de knop om te kiezen voor welke wereld je koopt."""
+    if actieve_wereld <= 1:
+        kleur = KNOP_UIT
+        rand = PANEEL_RAND
+        tekst = "Alleen voor wereld 1"
+    else:
+        doel_wereld = actieve_wereld - 1 if koop_voor_vorige_wereld else actieve_wereld
+        kleur = KNOP_KLEUR
+        rand = GEEL if koop_voor_vorige_wereld else KNOP_RAND
+        tekst = f"Koop voor wereld {format_getal(doel_wereld)}"
+
+    pygame.draw.rect(scherm, kleur, rect, border_radius=10)
+    pygame.draw.rect(scherm, rand, rect, 2, border_radius=10)
+
+    tekst_img = font.render(maak_passende_tekst(font, tekst, rect.width - 12), True, TEKST_KLEUR)
+    scherm.blit(
+        tekst_img,
+        (rect.x + rect.width // 2 - tekst_img.get_width() // 2, rect.y + 2),
+    )
+
+
+def betaal_shop_upgrade(punten, upgrade):
+    """Betaal 1 gewone shop-upgrade."""
+    kosten = upgrade["kosten"] * 10
+    if punten < kosten:
+        return punten, False
+    return punten - kosten, True
+
+
+def geef_shop_upgrade_aan_wereld(wereldtoestand, upgrade):
+    """Geef een shop-upgrade aan een bewaarde wereld."""
+    wereldtoestand["klik_kracht"] += upgrade["klik_bonus"]
+    wereldtoestand["auto_spoken"] += upgrade["auto_bonus"]
+
+
 def teken_luckshop_knop(scherm, rect, upgrade, luckcoins, font_titel, font_klein):
     """Teken 1 luckshop-vak."""
     genoeg = luckcoins >= upgrade["kosten"]
@@ -1920,6 +1956,7 @@ def speel():
     shop_vakken = maak_shop_vakken(paneel_rect)
     vorige_pagina_knop = pygame.Rect(paneel_rect.x + 176, paneel_rect.y + 216, 32, 28)
     volgende_pagina_knop = pygame.Rect(paneel_rect.x + 252, paneel_rect.y + 216, 32, 28)
+    shop_doel_knop = pygame.Rect(paneel_rect.x + 20, paneel_rect.y + 230, 156, 22)
     reset_knop = pygame.Rect(45, 415, 250, 74)
 
     # Spelvariabelen.
@@ -1965,6 +2002,7 @@ def speel():
     muziek_geluid = None
     muziek_kanaal = None
     muziek_wereld = None
+    koop_voor_vorige_wereld = False
 
     def bewaar_actieve_wereld():
         """Bewaar de actieve wereld terug in de wereldenlijst."""
@@ -2001,7 +2039,7 @@ def speel():
         nonlocal gouden_kaarten, gouden_kaarten_stapel, kaart_trekkingen, laatste_kaart
         nonlocal laatste_kaart_resultaat, laatste_gouden_kaart, laatste_gouden_kaart_resultaat
         nonlocal laatste_luckshop_resultaat, getrokken_kaart_sleutels, getrokken_gouden_kaart_sleutels
-        nonlocal upgrades, luckshop_upgrades, klik_animatie
+        nonlocal upgrades, luckshop_upgrades, klik_animatie, koop_voor_vorige_wereld
 
         (
             wereld_nummer,
@@ -2031,6 +2069,7 @@ def speel():
         upgrades = maak_upgrades()
         luckshop_upgrades = maak_luckshop_upgrades()
         klik_animatie = 0
+        koop_voor_vorige_wereld = False
 
     def wissel_naar_wereld(nieuwe_wereld):
         """Ga naar een andere wereld."""
@@ -2175,6 +2214,10 @@ def speel():
                     wereld_pagina = (actieve_wereld - 1) // len(wereld_vakken)
                     continue
 
+                if shop_doel_knop.collidepoint(muis_pos) and actieve_wereld > 1:
+                    koop_voor_vorige_wereld = not koop_voor_vorige_wereld
+                    continue
+
                 # Klik op de smiley voor punten.
                 if poppetje_rect.collidepoint(muis_pos):
                     punten += klik_kracht * multiplier
@@ -2261,10 +2304,16 @@ def speel():
                     zichtbare_upgrades = pak_shop_upgrades(upgrades, shop_pagina, vakken_per_pagina)
 
                     for upgrade, rect in zip(zichtbare_upgrades, shop_vakken):
-                        if rect.collidepoint(muis_pos) and punten >= upgrade["kosten"] * 10:
-                            punten -= upgrade["kosten"] * 10
-                            klik_kracht += upgrade["klik_bonus"]
-                            auto_spoken += upgrade["auto_bonus"]
+                        if rect.collidepoint(muis_pos):
+                            punten, gekocht = betaal_shop_upgrade(punten, upgrade)
+                            if not gekocht:
+                                break
+
+                            if koop_voor_vorige_wereld and actieve_wereld > 1:
+                                geef_shop_upgrade_aan_wereld(werelden[actieve_wereld - 2], upgrade)
+                            else:
+                                klik_kracht += upgrade["klik_bonus"]
+                                auto_spoken += upgrade["auto_bonus"]
                             shop_pagina = kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina)
                             break
 
@@ -2335,6 +2384,7 @@ def speel():
         pagina_tekst = font_klein.render(f"Pagina {shop_pagina + 1}", True, SUBTEKST_KLEUR)
         scherm.blit(winkel_tekst, (paneel_rect.x + 20, 244))
         scherm.blit(pagina_tekst, (paneel_rect.x + 210, 250))
+        teken_shop_doel_knop(scherm, shop_doel_knop, actieve_wereld, koop_voor_vorige_wereld, font_shop_klein)
 
         teken_pagina_knop(scherm, vorige_pagina_knop, "<", shop_pagina > 0, font_klein)
         teken_pagina_knop(scherm, volgende_pagina_knop, ">", True, font_klein)
