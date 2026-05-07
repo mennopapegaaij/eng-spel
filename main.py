@@ -2560,8 +2560,8 @@ def speel():
             sla_huidige_voortgang_op()
             opslaan_timer = 0
 
-        teken_achtergrond(scherm, teller, wereld_thema)
         wereld_thema = maak_wereld_thema(wereld_nummer)
+        teken_achtergrond(scherm, teller, wereld_thema)
         koop_kosten = bereken_wereld_kosten(len(werelden) + 1)
         start_muziek()
 
