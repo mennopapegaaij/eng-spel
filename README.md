@@ -12,7 +12,7 @@ Een simpel clicker-spel in Python met `pygame`.
 - Er speelt nu een origineel eng achtergrondmuziekje met drums, gitaar, piano en extra enge lagen
 - Er zijn nu oneindig veel shop-dingen verdeeld over oneindig veel pagina's
 - Er zijn nu ook oneindig veel `werelden`
-- Voor `wereld 2` heb je nu maar `1000000` punten nodig
+- Voor `wereld 2` heb je nu `1000000000000000000` punten nodig
 - Elke wereld heeft zijn eigen punten, kaarten, luckcoins en shop-pagina's
 - In wereld `2` en hoger kun je met de shop ook upgrades kopen voor de vorige wereld, dus wereld `2` kan voor wereld `1` kopen, wereld `3` voor wereld `2` en zo verder
 - Elke nieuwe wereld heeft een ander thema dan de vorige wereld
@@ -31,7 +31,7 @@ Een simpel clicker-spel in Python met `pygame`.
 - In de `Luckshop` kun je luckcoins ruilen voor heel veel normale punten
 - Je voortgang wordt automatisch opgeslagen in `spelopslag.json`
 - Het spelvenster is nu groter gemaakt zodat teksten en knoppen meer ruimte hebben
-- Nieuwe werelden zijn nu veel goedkoper dan eerst
+- Nieuwe werelden zijn nu weer veel duurder
 
 ## Starten
 
