@@ -89,6 +89,7 @@ LUCKSHOP_VOORVOEGSELS = ["Geluk", "Ster", "Maan", "Fortuin", "Goud", "Klaver", "
 LUCKSHOP_ACHTERVOEGSELS = ["Regen", "Boost", "Stapel", "Storm", "Ruil", "Sprong", "Schat", "Golf"]
 WERELD_BASISPRIJS = 10**25
 WERELD_GROEI_FACTOR = 10**10
+WERELD_SNELHEID_FACTOR = 10
 MUZIEK_SAMPLE_RATE = 22050
 MUZIEK_VOLUME = 0.32
 MUZIEK_BPM = 120
@@ -185,6 +186,21 @@ def bereken_wereld_kosten(wereld_nummer):
 def bereken_betaal_wereld_nummer(wereld_nummer):
     """Geef met welke wereld je de volgende wereld koopt."""
     return max(1, int(wereld_nummer) - 1)
+
+
+def bereken_wereld_snelheid(wereld_nummer):
+    """Geef hoe snel deze wereld is vergeleken met wereld 1."""
+    return WERELD_SNELHEID_FACTOR ** (max(1, int(wereld_nummer)) - 1)
+
+
+def bereken_klik_punten(klik_kracht, multiplier, wereld_nummer):
+    """Geef hoeveel punten 1 klik in deze wereld geeft."""
+    return klik_kracht * multiplier * bereken_wereld_snelheid(wereld_nummer)
+
+
+def bereken_auto_punten_per_seconde(auto_spoken, multiplier, wereld_nummer):
+    """Geef hoeveel punten per seconde deze wereld maakt."""
+    return auto_spoken * multiplier * bereken_wereld_snelheid(wereld_nummer)
 
 
 def maak_kaarten(goud=False, wereld_nummer=1):
@@ -2142,24 +2158,24 @@ def reset_speltoestand():
     return START_PUNTEN * 10, START_KLIK_KRACHT, START_AUTO_SPOKEN, 0
 
 
-def verwerk_auto_punten(punten, auto_spoken, multiplier, buffer_ms, delta_ms):
+def verwerk_auto_punten(punten, auto_spoken, multiplier, wereld_nummer, buffer_ms, delta_ms):
     """Verdeel automatische punten netjes over de hele seconde."""
     if auto_spoken <= 0 or delta_ms <= 0:
         return punten, buffer_ms
 
-    buffer_ms += auto_spoken * multiplier * delta_ms
+    buffer_ms += bereken_auto_punten_per_seconde(auto_spoken, multiplier, wereld_nummer) * delta_ms
     extra_punten = buffer_ms // 1000
     buffer_ms %= 1000
     punten += extra_punten
     return punten, buffer_ms
 
 
-def verwerk_luckcoins(luckcoins, buffer_ms, delta_ms):
+def verwerk_luckcoins(luckcoins, wereld_nummer, buffer_ms, delta_ms):
     """Geef elke seconde netjes 0.1 luckcoin erbij."""
     if delta_ms <= 0:
         return luckcoins, buffer_ms
 
-    buffer_ms += delta_ms
+    buffer_ms += delta_ms * bereken_wereld_snelheid(wereld_nummer)
     extra_tienden = buffer_ms // 1000
     buffer_ms %= 1000
     luckcoins += extra_tienden
@@ -2404,9 +2420,9 @@ def speel():
 
         punten_voor_auto = punten
         punten, auto_punten_buffer = verwerk_auto_punten(
-            punten, auto_spoken, multiplier, auto_punten_buffer, delta_ms
+            punten, auto_spoken, multiplier, wereld_nummer, auto_punten_buffer, delta_ms
         )
-        luckcoins, luckcoin_buffer = verwerk_luckcoins(luckcoins, luckcoin_buffer, delta_ms)
+        luckcoins, luckcoin_buffer = verwerk_luckcoins(luckcoins, wereld_nummer, luckcoin_buffer, delta_ms)
         if punten > punten_voor_auto:
             shop_pagina = kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina)
         luckshop_pagina = kies_volgende_luckshop_pagina(luckcoins, luckshop_pagina, luckshop_upgrades, len(luckshop_vakken))
@@ -2504,7 +2520,7 @@ def speel():
 
                 # Klik op de smiley voor punten.
                 if poppetje_rect.collidepoint(muis_pos):
-                    punten += klik_kracht * multiplier
+                    punten += bereken_klik_punten(klik_kracht, multiplier, wereld_nummer)
                     klik_animatie = 10
                     shop_pagina = kies_volgende_shop_pagina(punten, shop_pagina, upgrades, vakken_per_pagina)
 
@@ -2652,11 +2668,12 @@ def speel():
 
         paneel_tekst_breedte = paneel_rect.width - 40
         punten_tekst = font_groot.render(maak_passende_tekst(font_groot, f"{wereld_thema['punten']}: {format_tienden(punten)}", paneel_tekst_breedte), True, TEKST_KLEUR)
-        klik_tekst = font_middel.render(maak_passende_tekst(font_middel, f"Per klik: {format_tienden(klik_kracht * multiplier)}", paneel_tekst_breedte), True, GEEL)
-        auto_tekst = font_middel.render(maak_passende_tekst(font_middel, f"Per seconde: {format_tienden(auto_spoken * multiplier)}", paneel_tekst_breedte), True, ROZE)
+        klik_tekst = font_middel.render(maak_passende_tekst(font_middel, f"Per klik: {format_tienden(bereken_klik_punten(klik_kracht, multiplier, wereld_nummer))}", paneel_tekst_breedte), True, GEEL)
+        auto_tekst = font_middel.render(maak_passende_tekst(font_middel, f"Per seconde: {format_tienden(bereken_auto_punten_per_seconde(auto_spoken, multiplier, wereld_nummer))}", paneel_tekst_breedte), True, ROZE)
         multiplier_tekst = font_klein.render(maak_passende_tekst(font_klein, f"Multiplier: x{format_tienden(multiplier)}", paneel_tekst_breedte), True, GEEL)
         eng_kracht = bereken_eng_niveau(punten)
-        wereld_tekst = font_klein.render(maak_passende_tekst(font_klein, f"Wereldnaam: {wereld_thema['naam']}", paneel_tekst_breedte), True, SUBTEKST_KLEUR)
+        wereld_snelheid = bereken_wereld_snelheid(wereld_nummer)
+        wereld_tekst = font_klein.render(maak_passende_tekst(font_klein, f"Wereldnaam: {wereld_thema['naam']} - snelheid x{format_getal(wereld_snelheid)}", paneel_tekst_breedte), True, SUBTEKST_KLEUR)
         eng_tekst = font_klein.render(maak_passende_tekst(font_klein, f"Eng kracht: {format_getal(eng_kracht)}", paneel_tekst_breedte), True, SUBTEKST_KLEUR)
         scherm.blit(punten_tekst, (paneel_rect.x + 20, paneel_rect.y + 18))
         scherm.blit(klik_tekst, (paneel_rect.x + 20, paneel_rect.y + 92))
