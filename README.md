@@ -16,7 +16,7 @@ Een simpel clicker-spel in Python met `pygame`.
 - Elke wereld heeft zijn eigen punten, kaarten, luckcoins en shop-pagina's
 - `Wereld 2` koop je met gewone punten, `wereld 3` met de punten van wereld `2`, en zo verder
 - Elke nieuwe wereld gaat nu `10` keer zo snel als de vorige wereld
-- In wereld `2` en hoger kun je met de shop ook upgrades kopen voor de vorige wereld, dus wereld `2` kan voor wereld `1` kopen, wereld `3` voor wereld `2` en zo verder
+- In wereld `2` en hoger kun je met de shop ook upgrades kopen voor de vorige wereld, en die koop geeft daar nu `x10` bonus
 - Elke nieuwe wereld heeft een ander thema dan de vorige wereld
 - Elke wereld heeft nu ook een andere smiley en een andere achtergrond
 - Trek gratis kaarten bij multiplier-milestones zoals `x10`, `x100`, `x1000` en verder

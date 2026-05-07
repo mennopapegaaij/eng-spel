@@ -203,6 +203,11 @@ def bereken_auto_punten_per_seconde(auto_spoken, multiplier, wereld_nummer):
     return auto_spoken * multiplier * bereken_wereld_snelheid(wereld_nummer)
 
 
+def bereken_vorige_wereld_upgrade_factor():
+    """Geef hoeveel sterker een koop voor de vorige wereld is."""
+    return WERELD_SNELHEID_FACTOR
+
+
 def maak_kaarten(goud=False, wereld_nummer=1):
     """Maak een deck met 48 nummerkaarten: 1 t/m 12, vier keer."""
     thema = maak_wereld_thema(wereld_nummer)
@@ -1481,7 +1486,10 @@ def teken_shop_doel_knop(scherm, rect, actieve_wereld, koop_voor_vorige_wereld, 
         doel_wereld = actieve_wereld - 1 if koop_voor_vorige_wereld else actieve_wereld
         kleur = KNOP_KLEUR
         rand = GEEL if koop_voor_vorige_wereld else KNOP_RAND
-        tekst = f"Koop voor wereld {format_getal(doel_wereld)}"
+        if koop_voor_vorige_wereld:
+            tekst = f"Koop voor wereld {format_getal(doel_wereld)} x{format_getal(bereken_vorige_wereld_upgrade_factor())}"
+        else:
+            tekst = f"Koop voor wereld {format_getal(doel_wereld)}"
 
     pygame.draw.rect(scherm, kleur, rect, border_radius=10)
     pygame.draw.rect(scherm, rand, rect, 2, border_radius=10)
@@ -1498,10 +1506,10 @@ def betaal_shop_upgrade(punten, upgrade):
     return punten - kosten, True
 
 
-def geef_shop_upgrade_aan_wereld(wereldtoestand, upgrade):
+def geef_shop_upgrade_aan_wereld(wereldtoestand, upgrade, factor=1):
     """Geef een shop-upgrade aan een bewaarde wereld."""
-    wereldtoestand["klik_kracht"] += upgrade["klik_bonus"]
-    wereldtoestand["auto_spoken"] += upgrade["auto_bonus"]
+    wereldtoestand["klik_kracht"] += upgrade["klik_bonus"] * factor
+    wereldtoestand["auto_spoken"] += upgrade["auto_bonus"] * factor
 
 
 def teken_luckshop_knop(scherm, rect, upgrade, luckcoins, font_titel, font_klein):
@@ -2610,7 +2618,11 @@ def speel():
                                 break
 
                             if koop_voor_vorige_wereld and actieve_wereld > 1:
-                                geef_shop_upgrade_aan_wereld(werelden[actieve_wereld - 2], upgrade)
+                                geef_shop_upgrade_aan_wereld(
+                                    werelden[actieve_wereld - 2],
+                                    upgrade,
+                                    bereken_vorige_wereld_upgrade_factor(),
+                                )
                             else:
                                 klik_kracht += upgrade["klik_bonus"]
                                 auto_spoken += upgrade["auto_bonus"]
