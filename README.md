@@ -16,6 +16,7 @@ Een simpel clicker-spel in Python met `pygame`.
 - Elke wereld heeft zijn eigen punten, kaarten, luckcoins en shop-pagina's
 - In wereld `2` en hoger kun je met de shop ook upgrades kopen voor de vorige wereld, dus wereld `2` kan voor wereld `1` kopen, wereld `3` voor wereld `2` en zo verder
 - Elke nieuwe wereld heeft een ander thema dan de vorige wereld
+- Elke wereld heeft nu ook een andere smiley en een andere achtergrond
 - Trek gratis kaarten bij multiplier-milestones zoals `x10`, `x100`, `x1000` en verder
 - Het deck heeft nu 48 random kaarten: nummers `1` t/m `12`, en elke kaart zit er `4` keer in
 - Met `Bekijk kaarten` kun je zien welke kaarten je al hebt en welke nog missen

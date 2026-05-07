@@ -170,6 +170,8 @@ def maak_wereld_thema(wereld_nummer):
         "goud_reeksen": goud_reeksen,
         "kleuren": basis["kleuren"],
         "goud_kleuren": basis["goud_kleuren"],
+        "basis_index": index % len(WERELD_THEMAS),
+        "ronde": ronde,
     }
 
 
@@ -632,26 +634,194 @@ def maak_enge_muziek(wereld_nummer):
     return pygame.mixer.Sound(buffer=maak_muziek_buffer(wereld_nummer))
 
 
-def teken_achtergrond(scherm, teller):
-    """Teken de donkere lucht, maan en mist."""
-    scherm.fill(ACHTERGROND)
+def klem_kleur(waarde):
+    """Houd 1 kleurdeel tussen 0 en 255."""
+    return max(0, min(255, int(waarde)))
 
-    # Teken een grote maan.
-    pygame.draw.circle(scherm, MAAN_KLEUR, (770, 110), 55)
-    pygame.draw.circle(scherm, ACHTERGROND, (790, 95), 40)
 
-    # Teken simpele vleermuizen die een beetje bewegen.
-    vleermuizen = [(120, 80), (210, 130), (340, 95), (680, 170)]
-    for index, (vx, vy) in enumerate(vleermuizen):
-        golf = math.sin(teller * 0.04 + index) * 8
-        x = vx + int(golf)
-        pygame.draw.arc(scherm, SUBTEKST_KLEUR, (x, vy, 18, 10), math.pi, 2 * math.pi, 2)
-        pygame.draw.arc(scherm, SUBTEKST_KLEUR, (x + 14, vy, 18, 10), math.pi, 2 * math.pi, 2)
+def meng_kleuren(kleur_a, kleur_b, deel_b):
+    """Meng 2 kleuren rustig door elkaar."""
+    deel_b = max(0.0, min(1.0, deel_b))
+    deel_a = 1.0 - deel_b
+    return tuple(klem_kleur(kleur_a[index] * deel_a + kleur_b[index] * deel_b) for index in range(3))
 
-    # Mist onderaan het scherm.
-    for i in range(6):
-        mist_x = (i * 170 + teller * 0.8) % (SCHERM_BREEDTE + 220) - 110
-        pygame.draw.ellipse(scherm, MIST_KLEUR, (mist_x, 380 + (i % 2) * 18, 220, 80))
+
+def maak_kleur_lichter(kleur, extra):
+    """Maak een kleur lichter."""
+    return tuple(klem_kleur(deel + extra) for deel in kleur)
+
+
+def maak_kleur_donkerder(kleur, minder):
+    """Maak een kleur donkerder."""
+    return tuple(klem_kleur(deel - minder) for deel in kleur)
+
+
+def teken_ster_vorm(scherm, midden, buiten_straal, binnen_straal, kleur, rand_kleur=None, rand_dikte=0):
+    """Teken een simpele ster."""
+    punten = []
+    for index in range(10):
+        hoek = -math.pi / 2 + index * (math.pi / 5)
+        straal = buiten_straal if index % 2 == 0 else binnen_straal
+        punten.append((int(midden[0] + math.cos(hoek) * straal), int(midden[1] + math.sin(hoek) * straal)))
+
+    pygame.draw.polygon(scherm, kleur, punten)
+    if rand_kleur is not None and rand_dikte > 0:
+        pygame.draw.polygon(scherm, rand_kleur, punten, rand_dikte)
+
+
+def teken_kristal_vorm(scherm, midden, breedte, hoogte, kleur, rand_kleur=None):
+    """Teken een puntig kristal."""
+    x, y = midden
+    punten = [
+        (x, y - hoogte),
+        (x + breedte // 2, y - hoogte // 3),
+        (x + breedte // 3, y + hoogte // 2),
+        (x, y + hoogte),
+        (x - breedte // 3, y + hoogte // 2),
+        (x - breedte // 2, y - hoogte // 3),
+    ]
+    pygame.draw.polygon(scherm, kleur, punten)
+    if rand_kleur is not None:
+        pygame.draw.polygon(scherm, rand_kleur, punten, 2)
+
+
+def teken_vlam_vorm(scherm, midden, breedte, hoogte, kleur_buiten, kleur_binnen):
+    """Teken een simpele vlam."""
+    x, y = midden
+    buiten = [
+        (x, y - hoogte),
+        (x + breedte // 3, y - hoogte // 4),
+        (x + breedte // 2, y + hoogte // 2),
+        (x, y + hoogte),
+        (x - breedte // 2, y + hoogte // 2),
+        (x - breedte // 3, y - hoogte // 4),
+    ]
+    binnen = [
+        (x, y - int(hoogte * 0.55)),
+        (x + breedte // 5, y),
+        (x + breedte // 4, y + hoogte // 3),
+        (x, y + int(hoogte * 0.55)),
+        (x - breedte // 4, y + hoogte // 3),
+        (x - breedte // 5, y),
+    ]
+    pygame.draw.polygon(scherm, kleur_buiten, buiten)
+    pygame.draw.polygon(scherm, kleur_binnen, binnen)
+
+
+def teken_wolk_vorm(scherm, midden, breedte, hoogte, kleur):
+    """Teken een zachte wolk."""
+    x, y = midden
+    pygame.draw.ellipse(scherm, kleur, (x - breedte // 2, y - hoogte // 3, breedte, hoogte))
+    pygame.draw.circle(scherm, kleur, (x - breedte // 4, y), hoogte // 2)
+    pygame.draw.circle(scherm, kleur, (x, y - hoogte // 5), hoogte // 2)
+    pygame.draw.circle(scherm, kleur, (x + breedte // 4, y), hoogte // 2)
+
+
+def teken_achtergrond(scherm, teller, wereld_thema):
+    """Teken een achtergrond die past bij de wereld."""
+    hoofdkleur, steunkleur, accent_kleur, donker_kleur = wereld_thema["kleuren"]
+    basis_index = wereld_thema["basis_index"]
+    ronde = wereld_thema["ronde"]
+    achtergrond_kleur = meng_kleuren(ACHTERGROND, maak_kleur_donkerder(donker_kleur, 28), 0.72)
+    hemel_gloed = meng_kleuren(achtergrond_kleur, maak_kleur_lichter(hoofdkleur, 20), 0.35)
+    mist_kleur = meng_kleuren(MIST_KLEUR, hoofdkleur, 0.55)
+    extra_kleur = maak_kleur_lichter(accent_kleur, 35)
+    hemel_x = SCHERM_BREEDTE - 250
+    hemel_y = 120
+
+    scherm.fill(achtergrond_kleur)
+    pygame.draw.ellipse(scherm, hemel_gloed, (-140, -120, SCHERM_BREEDTE + 280, 320))
+
+    if basis_index == 0:
+        pygame.draw.circle(scherm, maak_kleur_lichter(MAAN_KLEUR, ronde * 4), (hemel_x, hemel_y), 58)
+        pygame.draw.circle(scherm, achtergrond_kleur, (hemel_x + 24, hemel_y - 16), 40)
+        vleermuizen = [(130, 90), (240, 145), (390, 100), (730, 180), (980, 120)]
+        vleermuis_kleur = maak_kleur_lichter(donker_kleur, 90)
+        for index, (vx, vy) in enumerate(vleermuizen):
+            golf = math.sin(teller * 0.04 + index) * 8
+            x = vx + int(golf)
+            pygame.draw.arc(scherm, vleermuis_kleur, (x, vy, 18, 10), math.pi, 2 * math.pi, 2)
+            pygame.draw.arc(scherm, vleermuis_kleur, (x + 14, vy, 18, 10), math.pi, 2 * math.pi, 2)
+    elif basis_index == 1:
+        teken_kristal_vorm(scherm, (hemel_x, hemel_y), 110, 62, maak_kleur_lichter(hoofdkleur, 55), extra_kleur)
+        for index in range(5):
+            golf = math.sin(teller * 0.03 + index) * 18
+            teken_kristal_vorm(
+                scherm,
+                (hemel_x - 170 + index * 70, 80 + index * 18 + int(golf)),
+                26 + (index % 2) * 6,
+                18 + (index % 3) * 6,
+                maak_kleur_lichter(steunkleur, 25),
+                maak_kleur_lichter(accent_kleur, 40),
+            )
+    elif basis_index == 2:
+        pygame.draw.circle(scherm, maak_kleur_lichter(steunkleur, 34), (hemel_x, hemel_y), 56)
+        pygame.draw.circle(scherm, maak_kleur_lichter(accent_kleur, 46), (hemel_x, hemel_y), 32)
+        for index in range(6):
+            golf = math.sin(teller * 0.045 + index * 0.8) * 10
+            teken_vlam_vorm(
+                scherm,
+                (hemel_x - 170 + index * 58, 116 + int(golf)),
+                24 + (index % 3) * 8,
+                26 + (index % 2) * 10,
+                maak_kleur_lichter(steunkleur, 20),
+                maak_kleur_lichter(accent_kleur, 50),
+            )
+    elif basis_index == 3:
+        ster_posities = [(hemel_x - 170, 88), (hemel_x - 60, 56), (hemel_x + 70, 110), (hemel_x + 150, 72), (hemel_x + 28, 165)]
+        for index, positie in enumerate(ster_posities):
+            pulseren = 1 + int((math.sin(teller * 0.05 + index) + 1) * 2)
+            teken_ster_vorm(
+                scherm,
+                positie,
+                8 + pulseren,
+                4 + pulseren // 2,
+                maak_kleur_lichter(extra_kleur, 20),
+                WIT,
+                1,
+            )
+        pygame.draw.line(scherm, maak_kleur_lichter(hoofdkleur, 60), (hemel_x - 40, 150), (hemel_x + 90, 70), 4)
+        pygame.draw.circle(scherm, WIT, (hemel_x + 90, 70), 7)
+    elif basis_index == 4:
+        wolk_kleur = meng_kleuren(donker_kleur, hoofdkleur, 0.35)
+        for index in range(4):
+            teken_wolk_vorm(scherm, (hemel_x - 190 + index * 118, 96 + (index % 2) * 24), 112, 42, wolk_kleur)
+        bliksem_kleur = maak_kleur_lichter(accent_kleur, 70)
+        for index in range(3):
+            start_x = hemel_x - 120 + index * 90
+            start_y = 122 + (index % 2) * 18
+            punten = [
+                (start_x, start_y),
+                (start_x - 10, start_y + 26),
+                (start_x + 8, start_y + 26),
+                (start_x - 14, start_y + 70),
+                (start_x + 20, start_y + 34),
+                (start_x + 2, start_y + 34),
+            ]
+            pygame.draw.lines(scherm, bliksem_kleur, False, punten, 4)
+    else:
+        droom_maan = maak_kleur_lichter(hoofdkleur, 72)
+        pygame.draw.circle(scherm, droom_maan, (hemel_x, hemel_y), 56)
+        pygame.draw.circle(scherm, achtergrond_kleur, (hemel_x + 22, hemel_y - 14), 41)
+        for index in range(5):
+            zweef = math.sin(teller * 0.03 + index * 0.7) * 14
+            teken_wolk_vorm(
+                scherm,
+                (hemel_x - 170 + index * 74, 92 + (index % 2) * 26 + int(zweef)),
+                84,
+                30,
+                meng_kleuren(hoofdkleur, WIT, 0.45),
+            )
+            pygame.draw.circle(scherm, maak_kleur_lichter(accent_kleur, 55), (hemel_x - 156 + index * 74, 54 + int(zweef * 0.5)), 6 + (index % 2) * 2)
+
+    grond_gloed = meng_kleuren(achtergrond_kleur, steunkleur, 0.28)
+    pygame.draw.ellipse(scherm, grond_gloed, (-120, SCHERM_HOOGTE - 210, SCHERM_BREEDTE + 240, 220))
+
+    for i in range(8):
+        mist_x = (i * 210 + teller * 0.8) % (SCHERM_BREEDTE + 260) - 130
+        mist_y = SCHERM_HOOGTE - 170 + (i % 3) * 24
+        breedte = 230 + (i % 2) * 30
+        pygame.draw.ellipse(scherm, mist_kleur, (mist_x, mist_y, breedte, 88))
 
 
 def bereken_eng_niveau(punten):
@@ -849,8 +1019,8 @@ def bereken_reset_drempel(punten):
     return (1000 * volgende_stap * (volgende_stap + 1)) // 2
 
 
-def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
-    """Teken een originele enge smiley waar je op moet klikken."""
+def teken_poppetje(scherm, rect, teller, klik_animatie, punten, wereld_thema):
+    """Teken een enge smiley die per wereld een andere look heeft."""
     x = rect.x
     y = rect.y
     breedte = rect.width
@@ -859,64 +1029,96 @@ def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
     basis_niveau = min(eng_kracht, 6)
     extra_niveau = max(0.0, eng_kracht - 6)
     extra_tellen = max(0, int(extra_niveau))
+    hoofdkleur, steunkleur, accent_kleur, donker_kleur = wereld_thema["kleuren"]
+    basis_index = wereld_thema["basis_index"]
 
-    # Bij een klik wordt de smiley heel even groter.
     extra = 12 if klik_animatie > 0 else 0
     golf = math.sin(teller * (0.05 + eng_kracht * 0.003)) * min(eng_kracht, 18)
     gezicht_midden = (x + breedte // 2, y + 115 + int(golf * 0.5))
     gezicht_straal = int(84 + extra // 2 + min(extra_niveau * 2, 24))
-    masker_kleur = (
-        int(max(120, 248 - basis_niveau * 8 - extra_tellen * 4)),
-        int(max(110, 244 - basis_niveau * 9 - extra_tellen * 5)),
-        int(max(120, 238 - basis_niveau * 10 - extra_tellen * 6)),
-    )
-    rand_kleur = (
-        int(min(255, 100 + basis_niveau * 16 + extra_tellen * 6)),
-        int(max(0, 35 - extra_tellen * 2)),
-        int(min(255, 120 + basis_niveau * 14 + extra_tellen * 8)),
-    )
-    schaduw_kleur = (
-        int(min(255, 55 + basis_niveau * 8 + extra_tellen * 6)),
-        10,
-        int(min(255, 70 + basis_niveau * 10 + extra_tellen * 8)),
-    )
-    mond_kleur = ROOD if eng_kracht >= 4 else WIT
-    oog_kleur = ROZE if klik_animatie > 0 else ROOD
+    masker_basis = meng_kleuren((246, 238, 230), hoofdkleur, 0.34)
+    masker_kleur = tuple(klem_kleur(masker_basis[index] - basis_niveau * 8 - extra_tellen * 4) for index in range(3))
+    rand_basis = meng_kleuren(accent_kleur, ROZE, 0.4)
+    rand_kleur = tuple(klem_kleur(rand_basis[index] + basis_niveau * 8 + extra_tellen * 4) for index in range(3))
+    schaduw_basis = meng_kleuren(donker_kleur, ZWART, 0.5)
+    schaduw_kleur = tuple(klem_kleur(schaduw_basis[index] + extra_tellen * 2) for index in range(3))
+    mond_basis = meng_kleuren(steunkleur, ROOD, 0.55)
+    mond_kleur = maak_kleur_lichter(mond_basis, 10) if eng_kracht >= 4 else WIT
+    oog_basis = meng_kleuren(accent_kleur, ROZE, 0.55)
+    oog_kleur = maak_kleur_lichter(oog_basis, 36 if klik_animatie > 0 else 14)
+    vonk_kleur = maak_kleur_lichter(accent_kleur, 42)
 
-    # Schaduw onder de smiley.
     pygame.draw.ellipse(
         scherm,
-        ZWART,
-        (gezicht_midden[0] - 78, gezicht_midden[1] + gezicht_straal - 12, 156, 30),
+        maak_kleur_donkerder(schaduw_kleur, 26),
+        (gezicht_midden[0] - 92, gezicht_midden[1] + gezicht_straal - 12, 184, 34),
     )
 
-    # Donkere mist rond de smiley.
     if eng_kracht >= 2:
-        wolken = 3 + min(extra_tellen, 5)
-        for wolk in range(wolken):
-            wolk_hoek = teller * 0.015 + wolk * 1.5
-            wolk_x = gezicht_midden[0] + int(math.cos(wolk_hoek) * (gezicht_straal + 18)) - 34
-            wolk_y = gezicht_midden[1] + int(math.sin(wolk_hoek) * (30 + wolk * 4)) - 20
-            pygame.draw.ellipse(scherm, schaduw_kleur, (wolk_x, wolk_y, 68, 40))
+        effecten = 3 + min(extra_tellen, 5)
+        for effect in range(effecten):
+            hoek = teller * 0.015 + effect * 1.4
+            effect_x = gezicht_midden[0] + int(math.cos(hoek) * (gezicht_straal + 24))
+            effect_y = gezicht_midden[1] + int(math.sin(hoek) * (34 + effect * 4))
+            if basis_index == 0:
+                pygame.draw.ellipse(scherm, schaduw_kleur, (effect_x - 34, effect_y - 20, 68, 40))
+            elif basis_index == 1:
+                teken_kristal_vorm(
+                    scherm,
+                    (effect_x, effect_y),
+                    18 + (effect % 2) * 8,
+                    14 + (effect % 3) * 6,
+                    maak_kleur_lichter(hoofdkleur, 30),
+                    maak_kleur_lichter(accent_kleur, 35),
+                )
+            elif basis_index == 2:
+                teken_vlam_vorm(
+                    scherm,
+                    (effect_x, effect_y),
+                    18 + (effect % 2) * 8,
+                    18 + (effect % 3) * 6,
+                    maak_kleur_lichter(steunkleur, 20),
+                    maak_kleur_lichter(accent_kleur, 50),
+                )
+            elif basis_index == 3:
+                teken_ster_vorm(
+                    scherm,
+                    (effect_x, effect_y),
+                    8 + (effect % 2) * 2,
+                    4 + (effect % 2),
+                    maak_kleur_lichter(accent_kleur, 36),
+                    WIT,
+                    1,
+                )
+            elif basis_index == 4:
+                teken_wolk_vorm(scherm, (effect_x, effect_y), 54, 24, meng_kleuren(donker_kleur, hoofdkleur, 0.3))
+                pygame.draw.lines(
+                    scherm,
+                    maak_kleur_lichter(accent_kleur, 46),
+                    False,
+                    [
+                        (effect_x, effect_y - 6),
+                        (effect_x - 6, effect_y + 8),
+                        (effect_x + 6, effect_y + 8),
+                        (effect_x - 10, effect_y + 24),
+                    ],
+                    2,
+                )
+            else:
+                teken_wolk_vorm(scherm, (effect_x, effect_y), 56, 24, meng_kleuren(hoofdkleur, WIT, 0.4))
+                pygame.draw.circle(scherm, maak_kleur_lichter(accent_kleur, 55), (effect_x + 12, effect_y - 18), 4)
 
-    # Aura-ringen maken de smiley nog dreigender.
     if eng_kracht >= 3:
         ringen = 1 + int(math.sqrt(extra_tellen + 1))
         for ring in range(ringen):
             aura_straal = int(gezicht_straal + 8 + ring * (12 + min(extra_niveau, 10)))
-            aura_kleur = (
-                int(min(255, 85 + ring * 20 + extra_tellen * 4)),
-                20,
-                int(min(255, 110 + ring * 20 + extra_tellen * 6)),
-            )
+            aura_kleur = maak_kleur_lichter(meng_kleuren(rand_kleur, accent_kleur, 0.45), ring * 10)
             pygame.draw.circle(scherm, aura_kleur, gezicht_midden, aura_straal, 3 if ring == 0 else 2)
 
-    # Grote smiley-kop.
     pygame.draw.circle(scherm, masker_kleur, gezicht_midden, gezicht_straal)
     pygame.draw.circle(scherm, rand_kleur, gezicht_midden, gezicht_straal, 5)
     pygame.draw.circle(scherm, ZWART, gezicht_midden, int(gezicht_straal * 0.78), 2)
 
-    # Kapotte masker-lijnen geven hem een enge, originele look.
     if eng_kracht >= 4:
         scheuren = 3 + min(extra_tellen, 5)
         for scheur in range(scheuren):
@@ -925,7 +1127,6 @@ def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
             pygame.draw.line(scherm, ZWART, (scheur_x, scheur_y), (scheur_x - 8, scheur_y + 24), 3)
             pygame.draw.line(scherm, schaduw_kleur, (scheur_x - 4, scheur_y + 12), (scheur_x + 9, scheur_y + 30), 2)
 
-    # Donkere schaduwhanden achter de smiley.
     if eng_kracht >= 7:
         handen = 4 + min(extra_tellen, 6)
         for hand in range(handen):
@@ -944,7 +1145,35 @@ def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
                     2,
                 )
 
-    # Ogen.
+    voorhoofd_y = gezicht_midden[1] - 68
+    if basis_index == 0:
+        pygame.draw.arc(scherm, rand_kleur, (gezicht_midden[0] - 70, voorhoofd_y - 4, 34, 48), math.pi * 1.08, math.pi * 1.82, 4)
+        pygame.draw.arc(scherm, rand_kleur, (gezicht_midden[0] + 36, voorhoofd_y - 4, 34, 48), math.pi * 1.18, math.pi * 1.92, 4)
+    elif basis_index == 1:
+        teken_kristal_vorm(scherm, (gezicht_midden[0], voorhoofd_y + 6), 18 + min(extra_tellen, 4) * 2, 20, maak_kleur_lichter(hoofdkleur, 40), WIT)
+    elif basis_index == 2:
+        teken_vlam_vorm(scherm, (gezicht_midden[0], voorhoofd_y + 8), 22, 22, maak_kleur_lichter(steunkleur, 26), maak_kleur_lichter(accent_kleur, 48))
+    elif basis_index == 3:
+        teken_ster_vorm(scherm, (gezicht_midden[0], voorhoofd_y + 4), 12 + min(extra_tellen, 3), 6, maak_kleur_lichter(accent_kleur, 38), WIT, 1)
+    elif basis_index == 4:
+        pygame.draw.lines(
+            scherm,
+            maak_kleur_lichter(accent_kleur, 54),
+            False,
+            [
+                (gezicht_midden[0], voorhoofd_y - 10),
+                (gezicht_midden[0] - 10, voorhoofd_y + 10),
+                (gezicht_midden[0] + 2, voorhoofd_y + 10),
+                (gezicht_midden[0] - 14, voorhoofd_y + 36),
+                (gezicht_midden[0] + 16, voorhoofd_y + 14),
+                (gezicht_midden[0] + 4, voorhoofd_y + 14),
+            ],
+            3,
+        )
+    else:
+        pygame.draw.circle(scherm, maak_kleur_lichter(hoofdkleur, 62), (gezicht_midden[0], voorhoofd_y + 6), 12)
+        pygame.draw.circle(scherm, masker_kleur, (gezicht_midden[0] + 4, voorhoofd_y + 4), 10)
+
     pupil_schok = int(math.sin(teller * 0.25) * min(2 + extra_niveau, 6))
     linker_oog = pygame.Rect(gezicht_midden[0] - 52, gezicht_midden[1] - 42, 36, 48)
     rechter_oog = pygame.Rect(gezicht_midden[0] + 16, gezicht_midden[1] - 42, 36, 48)
@@ -959,15 +1188,24 @@ def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
     pygame.draw.line(scherm, ZWART, (linker_oog.x - 4, linker_oog.y + 4), (linker_oog.right + 4, linker_oog.y + 18), 4)
     pygame.draw.line(scherm, ZWART, (rechter_oog.x - 4, rechter_oog.y + 18), (rechter_oog.right + 4, rechter_oog.y + 4), 4)
 
+    if basis_index == 3:
+        teken_ster_vorm(scherm, (linker_oog.centerx + pupil_schok, linker_oog.centery + 4), 5, 2, maak_kleur_lichter(accent_kleur, 34))
+        teken_ster_vorm(scherm, (rechter_oog.centerx - pupil_schok, rechter_oog.centery + 4), 5, 2, maak_kleur_lichter(accent_kleur, 34))
+    elif basis_index == 1:
+        pygame.draw.line(scherm, WIT, (linker_oog.centerx + pupil_schok, linker_oog.y + 12), (linker_oog.centerx + pupil_schok, linker_oog.bottom - 10), 2)
+        pygame.draw.line(scherm, WIT, (rechter_oog.centerx - pupil_schok, rechter_oog.y + 12), (rechter_oog.centerx - pupil_schok, rechter_oog.bottom - 10), 2)
+    elif basis_index == 5:
+        pygame.draw.arc(scherm, ZWART, (linker_oog.x - 2, linker_oog.y + 4, linker_oog.width + 4, 18), math.pi, math.tau, 3)
+        pygame.draw.arc(scherm, ZWART, (rechter_oog.x - 2, rechter_oog.y + 4, rechter_oog.width + 4, 18), math.pi, math.tau, 3)
+
     if eng_kracht >= 5:
         pygame.draw.circle(scherm, oog_kleur, (gezicht_midden[0], gezicht_midden[1] - 68), 9 + min(extra_tellen, 4))
         pygame.draw.circle(scherm, ZWART, (gezicht_midden[0], gezicht_midden[1] - 68), 5 + min(extra_tellen, 2))
 
     if eng_kracht >= 8:
-        pygame.draw.line(scherm, ROOD, (linker_oog.centerx, linker_oog.bottom - 2), (linker_oog.centerx - 8, linker_oog.bottom + 26), 2)
-        pygame.draw.line(scherm, ROOD, (rechter_oog.centerx, rechter_oog.bottom - 2), (rechter_oog.centerx + 8, rechter_oog.bottom + 26), 2)
+        pygame.draw.line(scherm, vonk_kleur, (linker_oog.centerx, linker_oog.bottom - 2), (linker_oog.centerx - 8, linker_oog.bottom + 26), 2)
+        pygame.draw.line(scherm, vonk_kleur, (rechter_oog.centerx, rechter_oog.bottom - 2), (rechter_oog.centerx + 8, rechter_oog.bottom + 26), 2)
 
-    # Zwevende oogjes rond de smiley.
     if extra_tellen > 0:
         zwevende_ogen = 2 + int(math.sqrt(extra_tellen) * 3)
         for i in range(zwevende_ogen):
@@ -980,7 +1218,6 @@ def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
             pygame.draw.circle(scherm, oog_kleur, (klein_oog_x, klein_oog_y), klein_oog_straal)
             pygame.draw.circle(scherm, WIT, (klein_oog_x + 1, klein_oog_y - 1), 1)
 
-    # Glimlach die steeds enger wordt.
     mond_breedte = 112 + min(extra_tellen * 8, 58)
     mond_hoogte = 60 + min(extra_tellen * 4, 26)
     mond_rect = pygame.Rect(
@@ -990,7 +1227,7 @@ def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
         mond_hoogte,
     )
     if eng_kracht < 2:
-        pygame.draw.arc(scherm, WIT, mond_rect, 0.2, math.pi - 0.2, 4)
+        pygame.draw.arc(scherm, mond_kleur if basis_index in (2, 3, 5) else WIT, mond_rect, 0.2, math.pi - 0.2, 4)
     else:
         pygame.draw.arc(scherm, mond_kleur, mond_rect, 0.12, math.pi - 0.12, 5)
         pygame.draw.arc(scherm, ZWART, (mond_rect.x, mond_rect.y + 8, mond_rect.width, mond_rect.height), 0.18, math.pi - 0.18, 3)
@@ -1022,14 +1259,13 @@ def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
             pygame.draw.line(scherm, schaduw_kleur, (gezicht_midden[0], mond_rect.y + 2), (gezicht_midden[0], mond_rect.bottom - 2), 3)
             pygame.draw.arc(
                 scherm,
-                ROOD,
+                vonk_kleur,
                 (mond_rect.x + 6, mond_rect.y + 18, mond_rect.width - 12, mond_rect.height - 18),
                 math.pi,
                 math.tau,
                 2,
             )
 
-    # Kleine vonken en krassen maken de smiley nog onrustiger.
     if eng_kracht >= 6:
         vonken = 6 + extra_tellen * 3
         for i in range(vonken):
@@ -1037,23 +1273,22 @@ def teken_poppetje(scherm, rect, teller, klik_animatie, punten):
             afstand = gezicht_straal + 24 + (i % 3) * 10 + min(extra_niveau * 5, 70)
             vonk_x = gezicht_midden[0] + int(math.cos(hoek) * afstand)
             vonk_y = gezicht_midden[1] + int(math.sin(hoek) * afstand * 0.8)
-            pygame.draw.line(scherm, ROOD, (vonk_x, vonk_y), (vonk_x - 8, vonk_y - 14), 2)
-            pygame.draw.line(scherm, ROOD, (vonk_x, vonk_y), (vonk_x + 8, vonk_y - 12), 2)
+            pygame.draw.line(scherm, vonk_kleur, (vonk_x, vonk_y), (vonk_x - 8, vonk_y - 14), 2)
+            pygame.draw.line(scherm, vonk_kleur, (vonk_x, vonk_y), (vonk_x + 8, vonk_y - 12), 2)
 
     if extra_tellen > 0:
         for i in range(extra_tellen * 2):
             kras_x = gezicht_midden[0] - 48 + (i * 17) % 96
             kras_y = gezicht_midden[1] - 46 + (i * 23) % 120
             kras_lengte = 10 + (i % 3) * 4
-            pygame.draw.line(scherm, ROOD, (kras_x, kras_y), (kras_x + kras_lengte, kras_y + 6), 2)
+            pygame.draw.line(scherm, vonk_kleur, (kras_x, kras_y), (kras_x + kras_lengte, kras_y + 6), 2)
             pygame.draw.line(scherm, ZWART, (kras_x + 4, kras_y - 2), (kras_x - 2, kras_y + 8), 2)
 
-    # Kleine waarschuwingstekst op de smiley.
     font = pygame.font.SysFont("Arial", 20, bold=True)
     font_klein = pygame.font.SysFont("Arial", 16, bold=True)
     tekst = font.render("KLIK!", True, GEEL)
     scherm.blit(tekst, (x + breedte // 2 - tekst.get_width() // 2, y + 250))
-    niveau_tekst = font_klein.render(f"Eng fase {eng_fase}", True, ROZE)
+    niveau_tekst = font_klein.render(f"Eng fase {eng_fase}", True, maak_kleur_lichter(oog_kleur, 18))
     scherm.blit(niveau_tekst, (x + breedte // 2 - niveau_tekst.get_width() // 2, y + 273))
 
 
@@ -2325,7 +2560,7 @@ def speel():
             sla_huidige_voortgang_op()
             opslaan_timer = 0
 
-        teken_achtergrond(scherm, teller)
+        teken_achtergrond(scherm, teller, wereld_thema)
         wereld_thema = maak_wereld_thema(wereld_nummer)
         koop_kosten = bereken_wereld_kosten(len(werelden) + 1)
         start_muziek()
@@ -2339,7 +2574,7 @@ def speel():
         scherm.blit(uitleg, (302, 70))
 
         # Teken de smiley.
-        teken_poppetje(scherm, poppetje_rect, teller, klik_animatie, punten)
+        teken_poppetje(scherm, poppetje_rect, teller, klik_animatie, punten, wereld_thema)
         teken_kaart_paneel(
             scherm,
             kaart_paneel_rect,
