@@ -87,7 +87,8 @@ LUCKSHOP_START_KOSTEN = 10000
 LUCKSHOP_START_FACTOR = 100
 LUCKSHOP_VOORVOEGSELS = ["Geluk", "Ster", "Maan", "Fortuin", "Goud", "Klaver", "Wens", "Kroon"]
 LUCKSHOP_ACHTERVOEGSELS = ["Regen", "Boost", "Stapel", "Storm", "Ruil", "Sprong", "Schat", "Golf"]
-WERELD_BASISPRIJS = 10**18
+WERELD_BASISPRIJS = 10**25
+WERELD_GROEI_FACTOR = 10**10
 MUZIEK_SAMPLE_RATE = 22050
 MUZIEK_VOLUME = 0.32
 MUZIEK_BPM = 120
@@ -176,7 +177,7 @@ def bereken_wereld_kosten(wereld_nummer):
     """Geef hoeveel punten je nodig hebt voor de volgende wereld."""
     if wereld_nummer <= 1:
         return 0
-    return WERELD_BASISPRIJS * (1000 ** (wereld_nummer - 2))
+    return WERELD_BASISPRIJS * (WERELD_GROEI_FACTOR ** (wereld_nummer - 2))
 
 
 def maak_kaarten(goud=False, wereld_nummer=1):
