@@ -182,6 +182,11 @@ def bereken_wereld_kosten(wereld_nummer):
     return WERELD_BASISPRIJS * (WERELD_GROEI_FACTOR ** (wereld_nummer - 2))
 
 
+def bereken_betaal_wereld_nummer(wereld_nummer):
+    """Geef met welke wereld je de volgende wereld koopt."""
+    return max(1, int(wereld_nummer) - 1)
+
+
 def maak_kaarten(goud=False, wereld_nummer=1):
     """Maak een deck met 48 nummerkaarten: 1 t/m 12, vier keer."""
     thema = maak_wereld_thema(wereld_nummer)
@@ -1802,7 +1807,9 @@ def teken_werelden_overzicht(
     actieve_wereld,
     wereld_pagina,
     koop_kosten,
-    huidig_wereld_punten,
+    betaal_wereld_nummer,
+    betaal_wereld_punten_naam,
+    betaal_wereld_punten,
     font,
     font_klein,
 ):
@@ -1815,7 +1822,7 @@ def teken_werelden_overzicht(
     pygame.draw.rect(scherm, PANEEL_RAND, overlay_rect, 4, border_radius=24)
 
     titel = font.render("Werelden", True, TEKST_KLEUR)
-    uitleg = font_klein.render("Elke wereld heeft eigen punten, kaarten en luckcoins.", True, SUBTEKST_KLEUR)
+    uitleg = font_klein.render("Elke nieuwe wereld koop je met de punten van de wereld ervoor.", True, SUBTEKST_KLEUR)
     scherm.blit(titel, (overlay_rect.x + 20, overlay_rect.y + 16))
     scherm.blit(uitleg, (overlay_rect.x + 22, overlay_rect.y + 52))
 
@@ -1847,13 +1854,21 @@ def teken_werelden_overzicht(
         )
 
     volgende_wereld = len(werelden) + 1
-    koop_kleur = KNOP_KLEUR if huidig_wereld_punten >= koop_kosten * 10 else KNOP_UIT
-    koop_rand = GEEL if huidig_wereld_punten >= koop_kosten * 10 else PANEEL_RAND
+    koop_kleur = KNOP_KLEUR if betaal_wereld_punten >= koop_kosten * 10 else KNOP_UIT
+    koop_rand = GEEL if betaal_wereld_punten >= koop_kosten * 10 else PANEEL_RAND
     pygame.draw.rect(scherm, koop_kleur, koop_rect, border_radius=16)
     pygame.draw.rect(scherm, koop_rand, koop_rect, 2, border_radius=16)
     koop_titel = font_klein.render(f"Koop wereld {format_getal(volgende_wereld)}", True, TEKST_KLEUR)
-    koop_uitleg = font_klein.render(maak_passende_tekst(font_klein, f"Kost {format_getal(koop_kosten)} punten", koop_rect.width - 20), True, GEEL)
-    koop_hint = font_klein.render("Nieuwe punten, nieuwe kaarten en nieuwe luckcoins.", True, SUBTEKST_KLEUR)
+    koop_uitleg = font_klein.render(
+        maak_passende_tekst(font_klein, f"Kost {format_getal(koop_kosten)} {betaal_wereld_punten_naam}", koop_rect.width - 20),
+        True,
+        GEEL,
+    )
+    koop_hint = font_klein.render(
+        maak_passende_tekst(font_klein, f"Betaal met wereld {format_getal(betaal_wereld_nummer)}.", koop_rect.width - 20),
+        True,
+        SUBTEKST_KLEUR,
+    )
     scherm.blit(koop_titel, (koop_rect.x + 14, koop_rect.y + 10))
     scherm.blit(koop_uitleg, (koop_rect.x + 14, koop_rect.y + 36))
     scherm.blit(koop_hint, (koop_rect.x + 14, koop_rect.y + 60))
@@ -2343,6 +2358,41 @@ def speel():
         muziek_kanaal = muziek_geluid.play(loops=-1)
         muziek_wereld = wereld_nummer
 
+    def pak_punten_van_wereld(zoek_wereld_nummer):
+        """Pak de punten van 1 wereld, ook als die wereld nu actief is."""
+        if zoek_wereld_nummer == actieve_wereld:
+            return punten
+        return werelden[zoek_wereld_nummer - 1]["punten"]
+
+    def pak_volgende_wereld_koop_info():
+        """Geef alle info om de volgende wereld te kopen."""
+        volgende_wereld = len(werelden) + 1
+        betaal_wereld_nummer = bereken_betaal_wereld_nummer(volgende_wereld)
+        betaal_wereld_thema = maak_wereld_thema(betaal_wereld_nummer)
+        return (
+            volgende_wereld,
+            betaal_wereld_nummer,
+            betaal_wereld_thema["punten"],
+            pak_punten_van_wereld(betaal_wereld_nummer),
+            bereken_wereld_kosten(volgende_wereld),
+        )
+
+    def betaal_volgende_wereld(betaal_wereld_nummer, koop_kosten):
+        """Haal de kosten af van de juiste wereld."""
+        nonlocal punten
+        kosten_tienden = koop_kosten * 10
+        if betaal_wereld_nummer == actieve_wereld:
+            if punten < kosten_tienden:
+                return False
+            punten -= kosten_tienden
+            return True
+
+        wereldtoestand = werelden[betaal_wereld_nummer - 1]
+        if wereldtoestand["punten"] < kosten_tienden:
+            return False
+        wereldtoestand["punten"] -= kosten_tienden
+        return True
+
     laad_actieve_wereld()
     wereld_pagina = (actieve_wereld - 1) // len(wereld_vakken)
     start_muziek()
@@ -2402,10 +2452,8 @@ def speel():
                         if wereld_pagina < max_pagina:
                             wereld_pagina += 1
                     elif koop_wereld_knop.collidepoint(muis_pos):
-                        volgende_wereld = len(werelden) + 1
-                        koop_kosten = bereken_wereld_kosten(volgende_wereld)
-                        if punten >= koop_kosten * 10:
-                            punten -= koop_kosten * 10
+                        volgende_wereld, betaal_wereld_nummer, _, _, koop_kosten = pak_volgende_wereld_koop_info()
+                        if betaal_volgende_wereld(betaal_wereld_nummer, koop_kosten):
                             bewaar_actieve_wereld()
                             werelden.append(maak_nieuwe_wereldtoestand(volgende_wereld))
                             wissel_naar_wereld(volgende_wereld)
@@ -2562,7 +2610,7 @@ def speel():
 
         wereld_thema = maak_wereld_thema(wereld_nummer)
         teken_achtergrond(scherm, teller, wereld_thema)
-        koop_kosten = bereken_wereld_kosten(len(werelden) + 1)
+        volgende_wereld, betaal_wereld_nummer, betaal_wereld_punten_naam, betaal_wereld_punten, koop_kosten = pak_volgende_wereld_koop_info()
         start_muziek()
 
         # Titel en uitleg linksboven.
@@ -2678,7 +2726,9 @@ def speel():
                 actieve_wereld,
                 wereld_pagina,
                 koop_kosten,
-                punten,
+                betaal_wereld_nummer,
+                betaal_wereld_punten_naam,
+                betaal_wereld_punten,
                 font_klein,
                 font_shop,
             )

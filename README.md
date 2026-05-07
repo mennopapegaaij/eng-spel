@@ -14,6 +14,7 @@ Een simpel clicker-spel in Python met `pygame`.
 - Er zijn nu ook oneindig veel `werelden`
 - Voor `wereld 2` heb je nu `10000000000000000000000000` punten nodig
 - Elke wereld heeft zijn eigen punten, kaarten, luckcoins en shop-pagina's
+- `Wereld 2` koop je met gewone punten, `wereld 3` met de punten van wereld `2`, en zo verder
 - In wereld `2` en hoger kun je met de shop ook upgrades kopen voor de vorige wereld, dus wereld `2` kan voor wereld `1` kopen, wereld `3` voor wereld `2` en zo verder
 - Elke nieuwe wereld heeft een ander thema dan de vorige wereld
 - Elke wereld heeft nu ook een andere smiley en een andere achtergrond
@@ -53,4 +54,5 @@ python main.py
 - Linkermuisknop op `Reset` = opnieuw beginnen; binnen 1 ronde wordt de bonus steeds duurder, maar na reset begint dat weer opnieuw
 - Linkermuisknop op `Echte reset` linksboven = alles wissen en weer echt vanaf 0 beginnen
 - Linkermuisknop op `Werelden` = werelden bekijken, kopen en wisselen
+- Het werelden-scherm laat nu ook zien met welke wereldpunten je de volgende wereld koopt
 - Als het normale deck leeg is, krijg je eerst 1 gouden kaart en daarna begint het normale deck opnieuw
