@@ -30,6 +30,7 @@ Een simpel clicker-spel in Python met `pygame`.
 - De eerste luckshop-koop is nu `1000.0` luckcoins en daarna wordt alles steeds duurder
 - In de `Luckshop` kun je luckcoins ruilen voor heel veel normale punten
 - Je voortgang wordt automatisch opgeslagen in `spelopslag.json`
+- Het spelvenster is nu groter gemaakt zodat teksten en knoppen meer ruimte hebben
 
 ## Starten
 

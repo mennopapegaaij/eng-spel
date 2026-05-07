@@ -1157,12 +1157,12 @@ def teken_paneel(scherm, paneel_rect):
 def maak_shop_vakken(paneel_rect):
     """Maak 8 vakken voor de shop (2 kolommen van 4)."""
     vakken = []
-    start_x = paneel_rect.x + 16
-    start_y = paneel_rect.y + 254
-    breedte = 129
-    hoogte = 52
-    tussenruimte_x = 10
-    tussenruimte_y = 8
+    start_x = paneel_rect.x + 18
+    start_y = paneel_rect.y + 388
+    tussenruimte_x = 12
+    tussenruimte_y = 12
+    breedte = (paneel_rect.width - 36 - tussenruimte_x) // 2
+    hoogte = 72
 
     for rij in range(4):
         for kolom in range(2):
@@ -1209,9 +1209,9 @@ def teken_shop_knop(scherm, rect, upgrade, punten, font_titel, font_klein):
     uitleg_tekst = font_klein.render(uitleg, True, SUBTEKST_KLEUR)
     kosten_tekst = font_klein.render(kosten, True, GEEL)
 
-    scherm.blit(titel_tekst, (rect.x + 8, rect.y + 5))
-    scherm.blit(uitleg_tekst, (rect.x + 8, rect.y + 22))
-    scherm.blit(kosten_tekst, (rect.x + 8, rect.y + 35))
+    scherm.blit(titel_tekst, (rect.x + 10, rect.y + 8))
+    scherm.blit(uitleg_tekst, (rect.x + 10, rect.y + 32))
+    scherm.blit(kosten_tekst, (rect.x + 10, rect.y + 50))
 
 
 def teken_shop_doel_knop(scherm, rect, actieve_wereld, koop_voor_vorige_wereld, font):
@@ -1230,10 +1230,7 @@ def teken_shop_doel_knop(scherm, rect, actieve_wereld, koop_voor_vorige_wereld, 
     pygame.draw.rect(scherm, rand, rect, 2, border_radius=10)
 
     tekst_img = font.render(maak_passende_tekst(font, tekst, rect.width - 12), True, TEKST_KLEUR)
-    scherm.blit(
-        tekst_img,
-        (rect.x + rect.width // 2 - tekst_img.get_width() // 2, rect.y + 2),
-    )
+    scherm.blit(tekst_img, (rect.x + rect.width // 2 - tekst_img.get_width() // 2, rect.y + rect.height // 2 - tekst_img.get_height() // 2))
 
 
 def betaal_shop_upgrade(punten, upgrade):
@@ -1444,16 +1441,19 @@ def teken_reset_knop(scherm, rect, punten, multiplier, reset_bonus_factor, font,
     pygame.draw.rect(scherm, knop_kleur, rect, border_radius=14)
     pygame.draw.rect(scherm, rand_kleur, rect, 3, border_radius=14)
 
-    bonus_tekst = font.render(f"Reset voor +{format_tienden(reset_bonus)}x", True, TEKST_KLEUR)
+    bonus_regel = maak_passende_tekst(font, f"Reset voor +{format_tienden(reset_bonus)}x", rect.width - 24)
+    bonus_tekst = font.render(bonus_regel, True, TEKST_KLEUR)
     scherm.blit(
         bonus_tekst,
         (rect.x + rect.width // 2 - bonus_tekst.get_width() // 2, rect.y + 10),
     )
 
     if reset_bonus > 0:
-        uitleg = font_klein.render(f"Nieuwe multiplier: x{format_tienden(multiplier + reset_bonus)}", True, GEEL)
+        uitleg_regel = f"Nieuwe multiplier: x{format_tienden(multiplier + reset_bonus)}"
+        uitleg = font_klein.render(maak_passende_tekst(font_klein, uitleg_regel, rect.width - 24), True, GEEL)
     else:
-        uitleg = font_klein.render(f"Spaar {format_getal(reset_drempel)} punten voor +0.1x", True, SUBTEKST_KLEUR)
+        uitleg_regel = f"Spaar {format_getal(reset_drempel)} punten voor +0.1x"
+        uitleg = font_klein.render(maak_passende_tekst(font_klein, uitleg_regel, rect.width - 24), True, SUBTEKST_KLEUR)
 
     scherm.blit(
         uitleg,
@@ -1931,33 +1931,33 @@ def speel():
     font_shop_klein = pygame.font.SysFont("Arial", 12)
 
     # Rechthoeken voor het poppetje en de winkel.
-    poppetje_rect = pygame.Rect(120, 110, 220, 260)
-    kaart_paneel_rect = pygame.Rect(360, 110, 220, 420)
-    kaart_knop_rect = pygame.Rect(kaart_paneel_rect.x + 20, kaart_paneel_rect.y + 188, kaart_paneel_rect.width - 40, 58)
-    kaart_overzicht_knop_rect = pygame.Rect(kaart_paneel_rect.x + 20, kaart_paneel_rect.y + 252, kaart_paneel_rect.width - 40, 30)
-    luckshop_knop_rect = pygame.Rect(kaart_paneel_rect.x + 20, kaart_paneel_rect.y + 288, kaart_paneel_rect.width - 40, 46)
-    kaart_overlay_rect = pygame.Rect(70, 36, 820, 468)
+    poppetje_rect = pygame.Rect(90, 150, 280, 260)
+    kaart_paneel_rect = pygame.Rect(430, 150, 340, 500)
+    kaart_knop_rect = pygame.Rect(kaart_paneel_rect.x + 20, kaart_paneel_rect.y + 188, kaart_paneel_rect.width - 40, 60)
+    kaart_overzicht_knop_rect = pygame.Rect(kaart_paneel_rect.x + 20, kaart_paneel_rect.y + 258, kaart_paneel_rect.width - 40, 36)
+    luckshop_knop_rect = pygame.Rect(kaart_paneel_rect.x + 20, kaart_paneel_rect.y + 304, kaart_paneel_rect.width - 40, 54)
+    kaart_overlay_rect = pygame.Rect(90, 50, SCHERM_BREEDTE - 180, SCHERM_HOOGTE - 100)
     sluit_kaart_overlay_rect = pygame.Rect(kaart_overlay_rect.right - 108, kaart_overlay_rect.y + 16, 88, 30)
-    luckshop_overlay_rect = pygame.Rect(70, 36, 820, 468)
+    luckshop_overlay_rect = pygame.Rect(90, 50, SCHERM_BREEDTE - 180, SCHERM_HOOGTE - 100)
     sluit_luckshop_overlay_rect = pygame.Rect(luckshop_overlay_rect.right - 108, luckshop_overlay_rect.y + 16, 88, 30)
     luckshop_vorige_pagina_knop = pygame.Rect(luckshop_overlay_rect.right - 196, luckshop_overlay_rect.y + 16, 36, 30)
     luckshop_volgende_pagina_knop = pygame.Rect(luckshop_overlay_rect.right - 152, luckshop_overlay_rect.y + 16, 36, 30)
     echte_reset_knop = pygame.Rect(18, 18, 122, 34)
     werelden_knop = pygame.Rect(150, 18, 104, 34)
-    werelden_overlay_rect = pygame.Rect(70, 36, 820, 468)
+    werelden_overlay_rect = pygame.Rect(90, 50, SCHERM_BREEDTE - 180, SCHERM_HOOGTE - 100)
     sluit_werelden_overlay_rect = pygame.Rect(werelden_overlay_rect.right - 108, werelden_overlay_rect.y + 16, 88, 30)
     werelden_vorige_pagina_knop = pygame.Rect(werelden_overlay_rect.right - 196, werelden_overlay_rect.y + 16, 36, 30)
     werelden_volgende_pagina_knop = pygame.Rect(werelden_overlay_rect.right - 152, werelden_overlay_rect.y + 16, 36, 30)
     koop_wereld_knop = pygame.Rect(werelden_overlay_rect.x + 20, werelden_overlay_rect.bottom - 96, werelden_overlay_rect.width - 40, 82)
-    echte_reset_overlay_rect = pygame.Rect(245, 150, 470, 210)
+    echte_reset_overlay_rect = pygame.Rect(SCHERM_BREEDTE // 2 - 235, SCHERM_HOOGTE // 2 - 105, 470, 210)
     echte_reset_ja_rect = pygame.Rect(echte_reset_overlay_rect.x + 42, echte_reset_overlay_rect.bottom - 70, 170, 46)
     echte_reset_nee_rect = pygame.Rect(echte_reset_overlay_rect.right - 212, echte_reset_overlay_rect.bottom - 70, 170, 46)
-    paneel_rect = pygame.Rect(620, 30, 300, 480)
+    paneel_rect = pygame.Rect(810, 30, 510, 740)
     shop_vakken = maak_shop_vakken(paneel_rect)
-    vorige_pagina_knop = pygame.Rect(paneel_rect.x + 176, paneel_rect.y + 216, 32, 28)
-    volgende_pagina_knop = pygame.Rect(paneel_rect.x + 252, paneel_rect.y + 216, 32, 28)
-    shop_doel_knop = pygame.Rect(paneel_rect.x + 20, paneel_rect.y + 230, 156, 22)
-    reset_knop = pygame.Rect(45, 415, 250, 74)
+    vorige_pagina_knop = pygame.Rect(paneel_rect.right - 100, paneel_rect.y + 320, 40, 34)
+    volgende_pagina_knop = pygame.Rect(paneel_rect.right - 50, paneel_rect.y + 320, 40, 34)
+    shop_doel_knop = pygame.Rect(paneel_rect.x + 20, paneel_rect.y + 320, 260, 34)
+    reset_knop = pygame.Rect(70, 620, 320, 88)
 
     # Spelvariabelen.
     speltoestand = laad_speltoestand()
@@ -2330,12 +2330,12 @@ def speel():
         start_muziek()
 
         # Titel en uitleg linksboven.
-        titel = font_groot.render(maak_passende_tekst(font_groot, f"Eng Spel - Wereld {format_getal(wereld_nummer)}", 320), True, TEKST_KLEUR)
-        uitleg = font_klein.render(maak_passende_tekst(font_klein, f"{wereld_thema['naam']} - klik op de enge smiley!", 320), True, SUBTEKST_KLEUR)
+        titel = font_groot.render(maak_passende_tekst(font_groot, f"Eng Spel - Wereld {format_getal(wereld_nummer)}", 460), True, TEKST_KLEUR)
+        uitleg = font_klein.render(maak_passende_tekst(font_klein, f"{wereld_thema['naam']} - klik op de enge smiley!", 500), True, SUBTEKST_KLEUR)
         teken_echte_reset_knop(scherm, echte_reset_knop, font_shop)
         teken_werelden_knop(scherm, werelden_knop, font_shop)
-        scherm.blit(titel, (276, 18))
-        scherm.blit(uitleg, (278, 64))
+        scherm.blit(titel, (300, 18))
+        scherm.blit(uitleg, (302, 70))
 
         # Teken de smiley.
         teken_poppetje(scherm, poppetje_rect, teller, klik_animatie, punten)
@@ -2366,24 +2366,25 @@ def speel():
         # Teken het informatiepaneel.
         teken_paneel(scherm, paneel_rect)
 
-        punten_tekst = font_groot.render(maak_passende_tekst(font_groot, f"{wereld_thema['punten']}: {format_tienden(punten)}", 260), True, TEKST_KLEUR)
-        klik_tekst = font_middel.render(f"Per klik: {format_tienden(klik_kracht * multiplier)}", True, GEEL)
-        auto_tekst = font_middel.render(f"Per seconde: {format_tienden(auto_spoken * multiplier)}", True, ROZE)
-        multiplier_tekst = font_klein.render(f"Multiplier: x{format_tienden(multiplier)}", True, GEEL)
+        paneel_tekst_breedte = paneel_rect.width - 40
+        punten_tekst = font_groot.render(maak_passende_tekst(font_groot, f"{wereld_thema['punten']}: {format_tienden(punten)}", paneel_tekst_breedte), True, TEKST_KLEUR)
+        klik_tekst = font_middel.render(maak_passende_tekst(font_middel, f"Per klik: {format_tienden(klik_kracht * multiplier)}", paneel_tekst_breedte), True, GEEL)
+        auto_tekst = font_middel.render(maak_passende_tekst(font_middel, f"Per seconde: {format_tienden(auto_spoken * multiplier)}", paneel_tekst_breedte), True, ROZE)
+        multiplier_tekst = font_klein.render(maak_passende_tekst(font_klein, f"Multiplier: x{format_tienden(multiplier)}", paneel_tekst_breedte), True, GEEL)
         eng_kracht = bereken_eng_niveau(punten)
-        wereld_tekst = font_klein.render(maak_passende_tekst(font_klein, f"Wereldnaam: {wereld_thema['naam']}", 250), True, SUBTEKST_KLEUR)
-        eng_tekst = font_klein.render(f"Eng kracht: {format_getal(eng_kracht)}", True, SUBTEKST_KLEUR)
-        scherm.blit(punten_tekst, (paneel_rect.x + 20, 48))
-        scherm.blit(klik_tekst, (paneel_rect.x + 20, 104))
-        scherm.blit(auto_tekst, (paneel_rect.x + 20, 140))
-        scherm.blit(multiplier_tekst, (paneel_rect.x + 20, 178))
-        scherm.blit(wereld_tekst, (paneel_rect.x + 20, 202))
-        scherm.blit(eng_tekst, (paneel_rect.x + 20, 222))
+        wereld_tekst = font_klein.render(maak_passende_tekst(font_klein, f"Wereldnaam: {wereld_thema['naam']}", paneel_tekst_breedte), True, SUBTEKST_KLEUR)
+        eng_tekst = font_klein.render(maak_passende_tekst(font_klein, f"Eng kracht: {format_getal(eng_kracht)}", paneel_tekst_breedte), True, SUBTEKST_KLEUR)
+        scherm.blit(punten_tekst, (paneel_rect.x + 20, paneel_rect.y + 18))
+        scherm.blit(klik_tekst, (paneel_rect.x + 20, paneel_rect.y + 92))
+        scherm.blit(auto_tekst, (paneel_rect.x + 20, paneel_rect.y + 138))
+        scherm.blit(multiplier_tekst, (paneel_rect.x + 20, paneel_rect.y + 190))
+        scherm.blit(wereld_tekst, (paneel_rect.x + 20, paneel_rect.y + 220))
+        scherm.blit(eng_tekst, (paneel_rect.x + 20, paneel_rect.y + 246))
 
         winkel_tekst = font_middel.render("Shop", True, TEKST_KLEUR)
         pagina_tekst = font_klein.render(f"Pagina {shop_pagina + 1}", True, SUBTEKST_KLEUR)
-        scherm.blit(winkel_tekst, (paneel_rect.x + 20, 244))
-        scherm.blit(pagina_tekst, (paneel_rect.x + 210, 250))
+        scherm.blit(winkel_tekst, (paneel_rect.x + 20, paneel_rect.y + 286))
+        scherm.blit(pagina_tekst, (paneel_rect.right - 180, paneel_rect.y + 294))
         teken_shop_doel_knop(scherm, shop_doel_knop, actieve_wereld, koop_voor_vorige_wereld, font_shop_klein)
 
         teken_pagina_knop(scherm, vorige_pagina_knop, "<", shop_pagina > 0, font_klein)
@@ -2396,7 +2397,7 @@ def speel():
 
         # Kleine tip onderaan.
         tip = font_klein.render("Tip: koop nieuwe werelden voor nieuwe kaarten!", True, SUBTEKST_KLEUR)
-        scherm.blit(tip, (38, 505))
+        scherm.blit(tip, (40, SCHERM_HOOGTE - 34))
 
         if kaart_overzicht_open:
             teken_kaart_overzicht(

@@ -1,8 +1,8 @@
 """Instellingen voor Eng Spel."""
 
 # Scherm
-SCHERM_BREEDTE = 960
-SCHERM_HOOGTE = 540
+SCHERM_BREEDTE = 1360
+SCHERM_HOOGTE = 820
 SCHERM_TITEL = "Eng Spel"
 FPS = 60
 
